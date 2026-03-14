@@ -51,6 +51,7 @@ export default {
   'share.topGenres': 'Top Genres',
   'share.journey': 'My Genre Journey',
   'share.text': 'Discovered my music taste evolution with SoundShift!',
+  'share.preview': 'Preview',
 
   // Landing
   'landing.hero': 'How did your music taste evolve?',
@@ -62,6 +63,8 @@ export default {
   'landing.topArtists': 'Most Popular Artists',
   'landing.topGenres': 'Genre Breakdown',
   'landing.songs': 'songs',
+  'landing.devNotice': 'Spotify is in development mode, new users need to be added manually.',
+  'landing.wantAccess': 'DM on Twitter for access:',
 
   // Empty
   'empty.noData': 'No data yet. Start a sync to fetch your liked songs.',

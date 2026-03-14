@@ -51,6 +51,7 @@ export default {
   'share.topGenres': 'Top Genre\'ler',
   'share.journey': 'Genre Yolculuğum',
   'share.text': 'SoundShift ile müzik zevkimin evrimini keşfettim!',
+  'share.preview': 'Önizle',
 
   // Landing
   'landing.hero': 'Müzik zevkin nasıl evrildi?',
@@ -62,6 +63,8 @@ export default {
   'landing.topArtists': 'En Popüler Sanatçılar',
   'landing.topGenres': 'Genre Dağılımı',
   'landing.songs': 'şarkı',
+  'landing.devNotice': 'Spotify development modunda olduğu için yeni kullanıcılar eklenmelidir.',
+  'landing.wantAccess': 'Erişim almak için Twitter\'dan yazın:',
 
   // Empty
   'empty.noData': 'Henüz veri yok. Sync başlatarak liked songs verini çekebilirsin.',

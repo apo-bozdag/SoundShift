@@ -34,6 +34,7 @@ export function useTimeline() {
   }, []);
 
   const fetchYearDetail = useCallback(async (year) => {
+    setYearDetail({ year, loading: true });
     try {
       const res = await fetch(`/api/timeline/${year}`);
       if (res.ok) {

@@ -48,22 +48,44 @@ export default function ShareCard({ stats, timeline, user, onClose }) {
     return { year: y.year, genre: top?.[0] || '?' };
   });
 
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  const generateCanvas = async () => {
+    const scale = fmt.w / cardRef.current.offsetWidth;
+    return html2canvas(cardRef.current, {
+      backgroundColor: '#121212',
+      scale,
+      useCORS: true,
+      width: cardRef.current.offsetWidth,
+      height: cardRef.current.offsetHeight,
+    });
+  };
+
   const handleSave = async () => {
     if (!cardRef.current) return;
     setSaving(true);
     try {
-      const scale = fmt.w / cardRef.current.offsetWidth;
-      const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: '#121212',
-        scale,
-        useCORS: true,
-        width: cardRef.current.offsetWidth,
-        height: cardRef.current.offsetHeight,
-      });
-      const link = document.createElement('a');
-      link.download = `soundshift-${format}-${user?.displayName || 'me'}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      const canvas = await generateCanvas();
+
+      if (isIOS) {
+        // iOS Safari <a download> desteklemiyor, yeni sekmede aç
+        const dataUrl = canvas.toDataURL('image/png');
+        const w = window.open();
+        if (w) {
+          w.document.write(`
+            <html><head><title>SoundShift</title>
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <style>body{margin:0;background:#000;display:flex;justify-content:center;align-items:center;min-height:100vh}img{max-width:100%;height:auto}</style>
+            </head><body><img src="${dataUrl}"/></body></html>
+          `);
+          w.document.close();
+        }
+      } else {
+        const link = document.createElement('a');
+        link.download = `soundshift-${format}-${user?.displayName || 'me'}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }
     } catch (err) {
       console.error('Share card save failed:', err);
     }
@@ -74,19 +96,16 @@ export default function ShareCard({ stats, timeline, user, onClose }) {
     if (!cardRef.current || !navigator.share) return;
     setSaving(true);
     try {
-      const scale = fmt.w / cardRef.current.offsetWidth;
-      const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: '#121212',
-        scale,
-        useCORS: true,
-      });
+      const canvas = await generateCanvas();
       canvas.toBlob(async (blob) => {
-        const file = new File([blob], 'soundshift.png', { type: 'image/png' });
-        await navigator.share({
-          title: 'SoundShift',
-          text: t('share.text'),
-          files: [file],
-        });
+        try {
+          const file = new File([blob], 'soundshift.png', { type: 'image/png' });
+          await navigator.share({
+            title: 'SoundShift',
+            text: t('share.text'),
+            files: [file],
+          });
+        } catch {}
         setSaving(false);
       });
     } catch (err) {
@@ -103,7 +122,7 @@ export default function ShareCard({ stats, timeline, user, onClose }) {
     card: {
       width: previewWidth,
       height: previewHeight,
-      borderRadius: 16,
+      borderRadius: 0,
       overflow: 'hidden',
       flexShrink: 0,
     },
@@ -322,14 +341,20 @@ export default function ShareCard({ stats, timeline, user, onClose }) {
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Actions — mobilde Share öne çıkar */}
         <div className="share-actions">
-          <button className="share-btn primary" onClick={handleSave} disabled={saving}>
-            {saving ? '...' : t('share.download')}
-          </button>
-          {navigator.share && (
-            <button className="share-btn secondary" onClick={handleShare} disabled={saving}>
-              {t('share.share')}
+          {navigator.share ? (
+            <>
+              <button className="share-btn primary" onClick={handleShare} disabled={saving}>
+                {saving ? '...' : t('share.share')}
+              </button>
+              <button className="share-btn secondary" onClick={handleSave} disabled={saving}>
+                {saving ? '...' : (isIOS ? t('share.preview') : t('share.download'))}
+              </button>
+            </>
+          ) : (
+            <button className="share-btn primary" onClick={handleSave} disabled={saving}>
+              {saving ? '...' : t('share.download')}
             </button>
           )}
         </div>

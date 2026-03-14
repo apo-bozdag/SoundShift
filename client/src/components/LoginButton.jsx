@@ -51,6 +51,20 @@ export default function LoginButton({ onLogin }) {
           </svg>
           {t('login.button')}
         </button>
+        <div className="landing-dev-notice">
+          <p>{t('landing.devNotice')}</p>
+          <p>
+            {t('landing.wantAccess')}{' '}
+            <a
+              href="https://x.com/apo_bozdag"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="twitter-link"
+            >
+              @apo_bozdag
+            </a>
+          </p>
+        </div>
       </section>
 
       {/* Public stats - Skeleton */}

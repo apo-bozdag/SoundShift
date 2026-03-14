@@ -165,6 +165,40 @@
   box-shadow: 0 8px 24px rgba(29, 185, 84, 0.3);
 }
 
+/* Dev notice */
+.landing-dev-notice {
+  margin-top: 20px;
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  text-align: center;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.landing-dev-notice p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.landing-dev-notice p + p {
+  margin-top: 6px;
+}
+
+.twitter-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.twitter-link:hover {
+  text-decoration: underline;
+}
+
 /* Counters */
 .landing-counters {
   display: flex;
@@ -457,6 +491,92 @@
   width: 72px;
   height: 14px;
   border-radius: 4px;
+}
+
+/* Year Detail Skeleton */
+.skeleton-year-badge {
+  display: inline-block;
+  width: 80px;
+  height: 22px;
+  border-radius: 12px;
+}
+
+.skeleton-section-title {
+  width: 140px;
+  height: 18px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.skeleton-genre-label {
+  display: inline-block;
+  width: 60px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.skeleton-genre-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.skeleton-genre-count {
+  display: inline-block;
+  width: 50px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.skeleton-artist-rank {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.skeleton-artist-name {
+  display: block;
+  width: 100px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.skeleton-artist-count {
+  display: block;
+  width: 50px;
+  height: 12px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.skeleton-bookend-emoji {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.skeleton-bookend-label {
+  display: block;
+  width: 70px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+.skeleton-bookend-track {
+  display: block;
+  width: 140px;
+  height: 14px;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.skeleton-bookend-meta {
+  display: block;
+  width: 100px;
+  height: 12px;
+  border-radius: 4px;
+  margin-top: 4px;
 }
 
 /* Responsive landing */
@@ -1336,7 +1456,7 @@
 
 /* Card preview */
 .share-card {
-  border-radius: 16px;
+  border-radius: 0; /* card image has no radius */
   overflow: hidden;
   flex-shrink: 0;
 }

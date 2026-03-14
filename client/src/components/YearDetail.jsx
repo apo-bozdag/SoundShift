@@ -33,6 +33,62 @@ export default function YearDetail({ data, onClose }) {
 
   if (!data) return null;
 
+  if (data.loading) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+          <div className="modal-header">
+            <h2>{data.year}</h2>
+            <span className="skeleton skeleton-year-badge" />
+          </div>
+          <div className="year-section">
+            <div className="skeleton skeleton-section-title" />
+            <div className="genre-bars">
+              {[0,1,2,3,4,5].map(i => (
+                <div key={i} className="genre-bar-row">
+                  <span className="skeleton skeleton-genre-label" />
+                  <div className="genre-bar-track">
+                    <div className="skeleton skeleton-genre-fill" style={{ width: `${90 - i * 12}%` }} />
+                  </div>
+                  <span className="skeleton skeleton-genre-count" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="year-section">
+            <div className="skeleton skeleton-section-title" />
+            <div className="top-artists-grid">
+              {[0,1,2,3,4].map(i => (
+                <div key={i} className="artist-card">
+                  <span className="skeleton skeleton-artist-rank" />
+                  <div className="artist-info">
+                    <span className="skeleton skeleton-artist-name" />
+                    <span className="skeleton skeleton-artist-count" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="year-section">
+            <div className="bookends-row">
+              {[0,1].map(i => (
+                <div key={i} className="bookend-card">
+                  <span className="skeleton skeleton-bookend-emoji" />
+                  <div>
+                    <span className="skeleton skeleton-bookend-label" />
+                    <span className="skeleton skeleton-bookend-track" />
+                    <span className="skeleton skeleton-bookend-meta" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const sortedGenres = Object.entries(data.genres)
     .filter(([g]) => g !== 'Unknown')
     .sort((a, b) => b[1] - a[1]);
