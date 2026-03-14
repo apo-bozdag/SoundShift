@@ -83,8 +83,25 @@ export default function App() {
         </div>
 
         {timelineLoading && !hasData && (
-          <div className="loading-section">
-            <div className="spinner" />
+          <div className="dashboard-skeleton">
+            <div className="stats-grid">
+              {[0,1,2,3].map(i => (
+                <div key={i} className="stat-card">
+                  <div className="skeleton skeleton-stat-accent" />
+                  <span className="skeleton skeleton-stat-value" />
+                  <span className="skeleton skeleton-stat-label" />
+                </div>
+              ))}
+            </div>
+            <div className="chart-container">
+              <div className="skeleton skeleton-chart-header" />
+              <div className="skeleton skeleton-chart" />
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
+                {[0,1,2,3,4,5].map(i => (
+                  <span key={i} className="skeleton skeleton-legend" />
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
