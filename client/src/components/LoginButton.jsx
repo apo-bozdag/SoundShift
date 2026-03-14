@@ -19,12 +19,14 @@ function formatNumber(n) {
 export default function LoginButton({ onLogin }) {
   const { t } = useI18n();
   const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/public-stats')
       .then(r => r.json())
       .then(setStats)
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -51,10 +53,42 @@ export default function LoginButton({ onLogin }) {
         </button>
       </section>
 
-      {/* Public stats */}
-      {stats && stats.userCount > 0 && (
+      {/* Public stats - Skeleton */}
+      {loading && (
         <>
-          {/* Counters */}
+          <section className="landing-counters">
+            {[0,1,2].map(i => (
+              <div key={i} className="landing-counter">
+                <span className="skeleton skeleton-counter" />
+                <span className="skeleton skeleton-label" />
+              </div>
+            ))}
+          </section>
+          <div className="landing-grid">
+            <section className="landing-card">
+              <div className="skeleton skeleton-title" />
+              <div className="landing-avatars">
+                {[0,1,2,3,4].map(i => (
+                  <div key={i} className="landing-avatar">
+                    <div className="skeleton skeleton-avatar" />
+                    <span className="skeleton skeleton-name" />
+                  </div>
+                ))}
+              </div>
+            </section>
+            <section className="landing-card">
+              <div className="skeleton skeleton-title" />
+              {[0,1,2,3,4].map(i => (
+                <div key={i} className="skeleton skeleton-list-row" />
+              ))}
+            </section>
+          </div>
+        </>
+      )}
+
+      {/* Public stats - Loaded */}
+      {!loading && stats && stats.userCount > 0 && (
+        <>
           <section className="landing-counters">
             <div className="landing-counter">
               <span className="counter-val">{formatNumber(stats.songCount)}</span>
@@ -71,7 +105,6 @@ export default function LoginButton({ onLogin }) {
           </section>
 
           <div className="landing-grid">
-            {/* Recent Users */}
             {stats.recentUsers?.length > 0 && (
               <section className="landing-card">
                 <h3 className="landing-card-title">{t('landing.recentUsers')}</h3>
@@ -90,7 +123,6 @@ export default function LoginButton({ onLogin }) {
               </section>
             )}
 
-            {/* Top Artists */}
             {stats.topArtists?.length > 0 && (
               <section className="landing-card">
                 <h3 className="landing-card-title">{t('landing.topArtists')}</h3>
@@ -115,7 +147,6 @@ export default function LoginButton({ onLogin }) {
               </section>
             )}
 
-            {/* Genre Breakdown */}
             {stats.topGenres?.length > 0 && (
               <section className="landing-card">
                 <h3 className="landing-card-title">{t('landing.topGenres')}</h3>

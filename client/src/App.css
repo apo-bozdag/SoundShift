@@ -370,6 +370,56 @@
   padding: 24px 0;
 }
 
+/* Skeleton loading */
+.skeleton {
+  display: block;
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--bg-card) 50%, var(--bg-hover) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-counter {
+  width: 64px;
+  height: 32px;
+  margin: 0 auto 6px;
+}
+
+.skeleton-label {
+  width: 80px;
+  height: 12px;
+  margin: 0 auto;
+}
+
+.skeleton-title {
+  width: 120px;
+  height: 12px;
+  margin-bottom: 16px;
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.skeleton-name {
+  width: 48px;
+  height: 8px;
+  margin: 0 auto;
+}
+
+.skeleton-list-row {
+  height: 36px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+}
+
 /* Responsive landing */
 @media (max-width: 640px) {
   .landing-title { font-size: 28px; }
