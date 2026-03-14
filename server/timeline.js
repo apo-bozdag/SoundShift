@@ -13,6 +13,22 @@ function chunkArray(arr, size) {
   return chunks;
 }
 
+// Helper: Supabase'den 1000+ satır çekmek için paginated select
+async function fetchAll(query) {
+  const PAGE = 1000;
+  let all = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await query.range(from, from + PAGE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all.push(...data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 // Hesaplanmış timeline verisi
 router.get('/timeline', requireAuth, async (req, res) => {
   const { data: user } = await supabase
@@ -107,11 +123,10 @@ router.get('/stats', requireAuth, async (req, res) => {
     .filter(([g]) => g !== 'Unknown')
     .sort((a, b) => b[1] - a[1])[0];
 
-  // Unique artists
-  const { data: artistData } = await supabase
-    .from('liked_songs')
-    .select('artist_ids')
-    .eq('user_id', req.userId);
+  // Unique artists (paginated, 1000+ şarkı olabilir)
+  const artistData = await fetchAll(
+    supabase.from('liked_songs').select('artist_ids').eq('user_id', req.userId)
+  );
 
   const uniqueArtists = new Set();
   for (const song of (artistData || [])) {
@@ -157,12 +172,12 @@ router.get('/public-stats', async (req, res) => {
       .limit(10);
 
     // En popüler artist'ler (en çok şarkıda geçen)
-    const { data: allSongs } = await supabase
-      .from('liked_songs')
-      .select('artist_ids');
+    const allSongs = await fetchAll(
+      supabase.from('liked_songs').select('artist_ids')
+    );
 
     const artistFreq = {};
-    for (const song of (allSongs || [])) {
+    for (const song of allSongs) {
       for (const id of song.artist_ids) {
         artistFreq[id] = (artistFreq[id] || 0) + 1;
       }

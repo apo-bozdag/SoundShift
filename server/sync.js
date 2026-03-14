@@ -44,17 +44,15 @@ async function spotifyFetch(url, accessToken) {
 // 1. Tüm liked songs'u çek
 async function fetchAllLikedSongs(accessToken, lastAddedAt, onProgress, abortSignal) {
   const songs = [];
-  let offset = 0;
+  let nextUrl = 'https://api.spotify.com/v1/me/tracks?limit=50&offset=0';
   let total = null;
   let done = false;
+  let fetched = 0;
 
-  while (!done) {
+  while (!done && nextUrl) {
     if (abortSignal?.aborted) break;
 
-    const data = await spotifyFetch(
-      `https://api.spotify.com/v1/me/tracks?limit=50&offset=${offset}`,
-      accessToken
-    );
+    const data = await spotifyFetch(nextUrl, accessToken);
 
     if (total === null) {
       total = data.total;
@@ -78,12 +76,15 @@ async function fetchAllLikedSongs(accessToken, lastAddedAt, onProgress, abortSig
       });
     }
 
-    onProgress?.({ step: 'songs', current: offset + data.items.length, total });
+    fetched += data.items.length;
+    onProgress?.({ step: 'songs', current: fetched, total });
 
-    if (!data.next || data.items.length < 50) done = true;
-    offset += 50;
+    // next URL'i kullan (Spotify'ın cursor'u), yoksa dur
+    nextUrl = data.next;
+    if (!nextUrl || data.items.length === 0) done = true;
   }
 
+  console.log(`Fetched ${songs.length} songs (total on Spotify: ${total})`);
   return songs;
 }
 
@@ -262,6 +263,22 @@ function computeTimeline(songs, artistsMap) {
   return { generatedAt: new Date().toISOString(), years, summary };
 }
 
+// Helper: Supabase'den 1000+ satır çekmek için paginated select
+async function fetchAll(query) {
+  const PAGE = 1000;
+  let all = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await query.range(from, from + PAGE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all.push(...data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 // Helper: chunk array for .in() queries (Supabase limit ~300)
 function chunkArray(arr, size) {
   const chunks = [];
@@ -312,11 +329,10 @@ export async function syncUser(userId, onProgress, abortSignal) {
       }
     }
 
-    // Tüm şarkılardan unique artist ID'leri topla
-    const { data: allSongs } = await supabase
-      .from('liked_songs')
-      .select('artist_ids, artist_names')
-      .eq('user_id', userId);
+    // Tüm şarkılardan unique artist ID'leri topla (1000+ satır için paginate)
+    const allSongs = await fetchAll(
+      supabase.from('liked_songs').select('artist_ids, artist_names').eq('user_id', userId)
+    );
 
     const artistMap = new Map();
     for (const song of allSongs) {
@@ -370,11 +386,10 @@ export async function syncUser(userId, onProgress, abortSignal) {
 
     onProgress?.({ step: 'timeline', message: 'Timeline hesaplanıyor...' });
 
-    // Timeline hesapla: tüm şarkıları ve artist'leri çek
-    const { data: allUserSongs } = await supabase
-      .from('liked_songs')
-      .select('*')
-      .eq('user_id', userId);
+    // Timeline hesapla: tüm şarkıları ve artist'leri çek (paginated)
+    const allUserSongs = await fetchAll(
+      supabase.from('liked_songs').select('*').eq('user_id', userId)
+    );
 
     const allArtistIds = [...new Set(allUserSongs.flatMap(s => s.artist_ids))];
     let allArtists = [];
