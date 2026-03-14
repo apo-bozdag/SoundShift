@@ -64,30 +64,43 @@ export default function ShareCard({ stats, timeline, user, onClose }) {
   const handleSave = async () => {
     if (!cardRef.current) return;
     setSaving(true);
+
+    // iOS: window.open MUST be called synchronously in user gesture, before any await
+    let newWindow = null;
+    if (isIOS) {
+      newWindow = window.open('', '_blank');
+    }
+
     try {
       const canvas = await generateCanvas();
 
-      if (isIOS) {
-        // iOS Safari <a download> desteklemiyor, yeni sekmede aç
-        const dataUrl = canvas.toDataURL('image/png');
-        const w = window.open();
-        if (w) {
-          w.document.write(`
-            <html><head><title>SoundShift</title>
-            <meta name="viewport" content="width=device-width,initial-scale=1">
-            <style>body{margin:0;background:#000;display:flex;justify-content:center;align-items:center;min-height:100vh}img{max-width:100%;height:auto}</style>
-            </head><body><img src="${dataUrl}"/></body></html>
-          `);
-          w.document.close();
-        }
+      if (isIOS && newWindow) {
+        // Blob URL kullan (dataURL iOS'ta bellek sınırına takılabiliyor)
+        canvas.toBlob((blob) => {
+          if (!blob) { setSaving(false); return; }
+          const blobUrl = URL.createObjectURL(blob);
+          newWindow.location.href = blobUrl;
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+          setSaving(false);
+        }, 'image/png');
+        return;
       } else {
-        const link = document.createElement('a');
-        link.download = `soundshift-${format}-${user?.displayName || 'me'}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        // Desktop: blob URL ile indir
+        canvas.toBlob((blob) => {
+          if (!blob) { setSaving(false); return; }
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = `soundshift-${format}-${user?.displayName || 'me'}.png`;
+          link.href = url;
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+          setSaving(false);
+        }, 'image/png');
+        return;
       }
     } catch (err) {
       console.error('Share card save failed:', err);
+      if (newWindow) newWindow.close();
     }
     setSaving(false);
   };
