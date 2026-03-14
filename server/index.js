@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import authRouter, { requireAuth } from './auth.js';
 import timelineRouter from './timeline.js';
-import { syncUser } from './sync.js';
+import { syncUser, isSyncRunning, subscribeProgress, unsubscribeProgress } from './sync.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -50,17 +50,30 @@ app.get('/api/sync/start', requireAuth, async (req, res) => {
   res.flushHeaders();
 
   let closed = false;
-  const abortController = new AbortController();
-  req.on('close', () => {
-    closed = true;
-    abortController.abort();
-  });
-
   const sendEvent = (data) => {
     if (!closed) {
       try { res.write(`data: ${JSON.stringify(data)}\n\n`); } catch {}
     }
   };
+
+  // Sync zaten çalışıyorsa, mevcut progress'e bağlan
+  if (isSyncRunning(req.userId)) {
+    req.on('close', () => {
+      closed = true;
+      unsubscribeProgress(req.userId, sendEvent);
+    });
+
+    subscribeProgress(req.userId, sendEvent);
+    return; // SSE açık kalır, sync bitince 'done' gelir ve client kapatır
+  }
+
+  // Yeni sync başlat
+  const abortController = new AbortController();
+  req.on('close', () => {
+    closed = true;
+    abortController.abort();
+    unsubscribeProgress(req.userId, sendEvent);
+  });
 
   try {
     await syncUser(req.userId, sendEvent, abortController.signal);

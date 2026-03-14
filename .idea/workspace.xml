@@ -4,14 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ff9b5464-d79d-4941-8aac-a140fc3f0196" name="Changes" comment="skeleton loader for statistic page">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="ff9b5464-d79d-4941-8aac-a140fc3f0196" name="Changes" comment="mobile share api updated &amp; ui improvements">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/App.css" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/App.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/LoginButton.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/LoginButton.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ShareCard.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/ShareCard.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/i18n/en.js" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/i18n/en.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/i18n/tr.js" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/i18n/tr.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/sync.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/sync.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -98,7 +93,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1773415768139</updated>
-      <workItem from="1773415769255" duration="15939000" />
+      <workItem from="1773415769255" duration="16654000" />
     </task>
     <task id="LOCAL-00001" summary="server sync update">
       <option name="closed" value="true" />
@@ -172,7 +167,15 @@
       <option name="project" value="LOCAL" />
       <updated>1773528407788</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="mobile share api updated &amp; ui improvements">
+      <option name="closed" value="true" />
+      <created>1773529094927</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1773529094927</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -186,6 +189,7 @@
     <MESSAGE value="supabase fetch all songs" />
     <MESSAGE value="home skeleton loader" />
     <MESSAGE value="skeleton loader for statistic page" />
-    <option name="LAST_COMMIT_MESSAGE" value="skeleton loader for statistic page" />
+    <MESSAGE value="mobile share api updated &amp; ui improvements" />
+    <option name="LAST_COMMIT_MESSAGE" value="mobile share api updated &amp; ui improvements" />
   </component>
 </project>

@@ -7,16 +7,38 @@ const LASTFM_KEY = process.env.LASTFM_API_KEY;
 
 // Per-user sync lock with timeout (max 10 dk)
 const syncLocks = new Map();
+// Per-user progress state & listeners (for reconnect)
+const syncState = new Map(); // userId -> { lastProgress, listeners: Set<fn> }
 
 function acquireLock(userId) {
   const existing = syncLocks.get(userId);
   // 10 dk'dan eski lock'ları temizle
   if (existing && Date.now() - existing > 10 * 60 * 1000) {
     syncLocks.delete(userId);
+    syncState.delete(userId);
   }
   if (syncLocks.has(userId)) return false;
   syncLocks.set(userId, Date.now());
+  syncState.set(userId, { lastProgress: null, listeners: new Set() });
   return true;
+}
+
+export function isSyncRunning(userId) {
+  return syncLocks.has(userId);
+}
+
+export function subscribeProgress(userId, listener) {
+  const state = syncState.get(userId);
+  if (!state) return false;
+  // Hemen son progress'i gönder
+  if (state.lastProgress) listener(state.lastProgress);
+  state.listeners.add(listener);
+  return true;
+}
+
+export function unsubscribeProgress(userId, listener) {
+  const state = syncState.get(userId);
+  if (state) state.listeners.delete(listener);
 }
 
 // Spotify API fetch with rate limiting and error handling
@@ -295,6 +317,18 @@ export async function syncUser(userId, onProgress, abortSignal) {
     throw new Error('Sync already in progress');
   }
 
+  // Wrap onProgress to broadcast to all listeners
+  const broadcast = (data) => {
+    const state = syncState.get(userId);
+    if (state) {
+      state.lastProgress = data;
+      for (const listener of state.listeners) {
+        try { listener(data); } catch {}
+      }
+    }
+    onProgress?.(data);
+  };
+
   try {
     const accessToken = await getValidToken(userId);
 
@@ -304,9 +338,9 @@ export async function syncUser(userId, onProgress, abortSignal) {
       .eq('spotify_id', userId)
       .single();
 
-    onProgress?.({ step: 'songs', message: 'Liked songs çekiliyor...' });
+    broadcast({ step: 'songs', message: 'Liked songs çekiliyor...' });
 
-    const newSongs = await fetchAllLikedSongs(accessToken, user?.last_added_at, onProgress, abortSignal);
+    const newSongs = await fetchAllLikedSongs(accessToken, user?.last_added_at, broadcast, abortSignal);
 
     // Bulk upsert new songs (500'lük chunk'lar halinde)
     if (newSongs.length > 0) {
@@ -344,7 +378,7 @@ export async function syncUser(userId, onProgress, abortSignal) {
       });
     }
 
-    onProgress?.({
+    broadcast({
       step: 'artists',
       message: `${artistMap.size} sanatçının genre'ları çekiliyor...`,
       total: artistMap.size,
@@ -379,13 +413,13 @@ export async function syncUser(userId, onProgress, abortSignal) {
           await enrichArtistGenre(artistId, artistName, currentToken, cachedMap);
           processed++;
           if (processed % 20 === 0) {
-            onProgress?.({ step: 'artists', current: processed, total: artistMap.size });
+            broadcast({ step: 'artists', current: processed, total: artistMap.size });
           }
         })
       );
     }
 
-    onProgress?.({ step: 'timeline', message: 'Timeline hesaplanıyor...' });
+    broadcast({ step: 'timeline', message: 'Timeline hesaplanıyor...' });
 
     // Timeline hesapla: tüm şarkıları ve artist'leri çek (paginated)
     const allUserSongs = await fetchAll(() =>
@@ -417,8 +451,9 @@ export async function syncUser(userId, onProgress, abortSignal) {
     }
     await supabase.from('users').update(updates).eq('spotify_id', userId);
 
-    onProgress?.({ step: 'done', message: aborted ? 'Kısmi sync tamamlandı' : 'Tamamlandı!' });
+    broadcast({ step: 'done', message: aborted ? 'Kısmi sync tamamlandı' : 'Tamamlandı!' });
   } finally {
     syncLocks.delete(userId);
+    syncState.delete(userId);
   }
 }
