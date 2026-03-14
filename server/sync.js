@@ -42,13 +42,15 @@ async function spotifyFetch(url, accessToken) {
 }
 
 // 1. Tüm liked songs'u çek
-async function fetchAllLikedSongs(accessToken, lastAddedAt, onProgress) {
+async function fetchAllLikedSongs(accessToken, lastAddedAt, onProgress, abortSignal) {
   const songs = [];
   let offset = 0;
   let total = null;
   let done = false;
 
   while (!done) {
+    if (abortSignal?.aborted) break;
+
     const data = await spotifyFetch(
       `https://api.spotify.com/v1/me/tracks?limit=50&offset=${offset}`,
       accessToken
@@ -286,7 +288,7 @@ export async function syncUser(userId, onProgress, abortSignal) {
 
     onProgress?.({ step: 'songs', message: 'Liked songs çekiliyor...' });
 
-    const newSongs = await fetchAllLikedSongs(accessToken, user?.last_added_at, onProgress);
+    const newSongs = await fetchAllLikedSongs(accessToken, user?.last_added_at, onProgress, abortSignal);
 
     // Bulk upsert new songs (500'lük chunk'lar halinde)
     if (newSongs.length > 0) {
@@ -388,16 +390,18 @@ export async function syncUser(userId, onProgress, abortSignal) {
     const timeline = computeTimeline(allUserSongs, artistsMap);
 
     // Timeline ve sync state'i güncelle
+    const aborted = abortSignal?.aborted;
     const updates = {
       timeline,
       last_sync_at: new Date().toISOString(),
     };
-    if (newSongs.length > 0) {
+    // last_added_at'ı sadece tam sync'te güncelle, yarıda kaldıysa güncelleme
+    if (newSongs.length > 0 && !aborted) {
       updates.last_added_at = newSongs[0].addedAt;
     }
     await supabase.from('users').update(updates).eq('spotify_id', userId);
 
-    onProgress?.({ step: 'done', message: 'Tamamlandı!' });
+    onProgress?.({ step: 'done', message: aborted ? 'Kısmi sync tamamlandı' : 'Tamamlandı!' });
   } finally {
     syncLocks.delete(userId);
   }

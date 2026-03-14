@@ -4,12 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ff9b5464-d79d-4941-8aac-a140fc3f0196" name="Changes" comment="server sync update">
-      <change beforePath="$PROJECT_DIR$/client/src/App.css" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/App.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/LoginButton.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/LoginButton.jsx" afterDir="false" />
+    <list default="true" id="ff9b5464-d79d-4941-8aac-a140fc3f0196" name="Changes" comment="home ui update">
+      <change afterPath="$PROJECT_DIR$/img.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/App.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/client/src/components/SyncButton.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/components/SyncButton.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/i18n/en.js" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/i18n/en.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/client/src/i18n/tr.js" beforeDir="false" afterPath="$PROJECT_DIR$/client/src/i18n/tr.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/timeline.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/timeline.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/server/sync.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/sync.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -96,7 +98,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1773415768139</updated>
-      <workItem from="1773415769255" duration="12317000" />
+      <workItem from="1773415769255" duration="12628000" />
     </task>
     <task id="LOCAL-00001" summary="server sync update">
       <option name="closed" value="true" />
@@ -106,7 +108,15 @@
       <option name="project" value="LOCAL" />
       <updated>1773524832752</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="home ui update">
+      <option name="closed" value="true" />
+      <created>1773525294219</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1773525294219</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -114,6 +124,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="server sync update" />
-    <option name="LAST_COMMIT_MESSAGE" value="server sync update" />
+    <MESSAGE value="home ui update" />
+    <option name="LAST_COMMIT_MESSAGE" value="home ui update" />
   </component>
 </project>

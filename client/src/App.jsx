@@ -73,6 +73,7 @@ export default function App() {
             isRunning={isRunning}
             error={syncError}
             onSync={startSync}
+            onReset={() => { fetchTimeline(); fetchStats(); }}
           />
           {hasData && (
             <button className="share-trigger-btn" onClick={() => setShowShare(true)}>

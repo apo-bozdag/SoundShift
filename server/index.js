@@ -28,6 +28,19 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true });
 });
 
+// Sync reset (baştan sync için)
+app.post('/api/sync/reset', requireAuth, async (req, res) => {
+  const supabase = (await import('./db.js')).default;
+  // liked_songs ve timeline'ı temizle, last_added_at'ı sıfırla
+  await supabase.from('liked_songs').delete().eq('user_id', req.userId);
+  await supabase.from('users').update({
+    timeline: null,
+    last_added_at: null,
+    last_sync_at: null,
+  }).eq('spotify_id', req.userId);
+  res.json({ ok: true });
+});
+
 // Sync endpoint (SSE)
 app.get('/api/sync/start', requireAuth, async (req, res) => {
   // SSE headers

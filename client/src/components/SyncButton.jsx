@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useI18n } from '../i18n/index.jsx';
 
-export default function SyncButton({ progress, isRunning, error, onSync }) {
+export default function SyncButton({ progress, isRunning, error, onSync, onReset }) {
   const { t } = useI18n();
+  const [resetting, setResetting] = useState(false);
 
   const getProgressPercent = () => {
     if (!progress || !progress.total || !progress.current) return 0;
@@ -28,15 +30,37 @@ export default function SyncButton({ progress, isRunning, error, onSync }) {
     return progress.message || '';
   };
 
+  const handleReset = async () => {
+    if (!confirm(t('sync.resetConfirm'))) return;
+    setResetting(true);
+    try {
+      await fetch('/api/sync/reset', { method: 'POST', credentials: 'include' });
+      onReset?.();
+    } catch (err) {
+      console.error('Reset failed:', err);
+    }
+    setResetting(false);
+  };
+
   return (
     <div className="sync-container">
-      <button
-        className={`sync-btn ${isRunning ? 'syncing' : ''}`}
-        onClick={onSync}
-        disabled={isRunning}
-      >
-        {isRunning ? t('sync.running') : t('sync.start')}
-      </button>
+      <div className="sync-buttons">
+        <button
+          className={`sync-btn ${isRunning ? 'syncing' : ''}`}
+          onClick={onSync}
+          disabled={isRunning || resetting}
+        >
+          {isRunning ? t('sync.running') : t('sync.start')}
+        </button>
+        <button
+          className="sync-reset-btn"
+          onClick={handleReset}
+          disabled={isRunning || resetting}
+          title={t('sync.resetTitle')}
+        >
+          {resetting ? '...' : t('sync.reset')}
+        </button>
+      </div>
 
       {isRunning && progress && (
         <div className="progress-wrapper">

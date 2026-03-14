@@ -19,6 +19,9 @@ export default {
   'sync.timeline': 'Calculating timeline...',
   'sync.error': 'Error: {message}',
   'sync.disconnected': 'Connection lost',
+  'sync.reset': 'Reset',
+  'sync.resetTitle': 'Delete all data and sync from scratch',
+  'sync.resetConfirm': 'All data will be deleted and synced from scratch. Are you sure?',
 
   // Stats
   'stats.totalTracks': 'Total Tracks',

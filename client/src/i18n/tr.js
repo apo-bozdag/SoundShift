@@ -19,6 +19,9 @@ export default {
   'sync.timeline': 'Timeline hesaplanıyor...',
   'sync.error': 'Hata: {message}',
   'sync.disconnected': 'Bağlantı kesildi',
+  'sync.reset': 'Sıfırla',
+  'sync.resetTitle': 'Tüm veriyi silip baştan sync yap',
+  'sync.resetConfirm': 'Tüm veriler silinip baştan sync yapılacak. Emin misin?',
 
   // Stats
   'stats.totalTracks': 'Toplam Şarkı',
