@@ -22,7 +22,7 @@
       "category": ["music", "entertainment", "web"],
       "platform": "Web",
       "price": "Free",
-      "github": "https://github.com/radkod/spotify-analyz",
+      "github": "https://github.com/apo-bozdag/SoundShift",
       "homepage": "https://soundshift-4no7.onrender.com",
       "language": "JavaScript",
       "features": [
@@ -35,10 +35,10 @@
         "Mobile-friendly with Web Share API"
       ],
       "screenshots": [
-        "https://raw.githubusercontent.com/radkod/spotify-analyz/main/ss/1.png",
-        "https://raw.githubusercontent.com/radkod/spotify-analyz/main/ss/2.png",
-        "https://raw.githubusercontent.com/radkod/spotify-analyz/main/ss/3.png",
-        "https://raw.githubusercontent.com/radkod/spotify-analyz/main/ss/4.png"
+        "https://raw.githubusercontent.com/apo-bozdag/SoundShift/main/ss/1.png",
+        "https://raw.githubusercontent.com/apo-bozdag/SoundShift/main/ss/2.png",
+        "https://raw.githubusercontent.com/apo-bozdag/SoundShift/main/ss/3.png",
+        "https://raw.githubusercontent.com/apo-bozdag/SoundShift/main/ss/4.png"
       ]
     }
   ]
