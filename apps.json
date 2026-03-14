@@ -1,0 +1,45 @@
+{
+  "$schema": "https://wvw.dev/apps.schema.json",
+  "store": {
+    "name": "RadKod Apps",
+    "developer": "Abdullah Bozdag",
+    "tagline": "Vibe-coded apps by @apo_bozdag",
+    "github": "https://github.com/radkod"
+  },
+  "categories": [
+    { "id": "music", "name": "Music" },
+    { "id": "entertainment", "name": "Entertainment" },
+    { "id": "web", "name": "Web Apps" }
+  ],
+  "apps": [
+    {
+      "id": "soundshift",
+      "name": "SoundShift",
+      "subtitle": "Discover how your music taste evolved",
+      "description": "Analyze your Spotify liked songs and visualize your genre journey over the years with interactive charts.",
+      "longDescription": "SoundShift analyzes your Spotify liked songs library and builds an interactive timeline showing how your music taste evolved year by year. It enriches genre data from Spotify, Last.fm, and MusicBrainz to create accurate genre breakdowns. Features include stacked area charts, year-by-year drill-down with song lists, shareable image cards, and a public landing page with community stats.",
+      "iconEmoji": "🎵",
+      "category": ["music", "entertainment", "web"],
+      "platform": "Web",
+      "price": "Free",
+      "github": "https://github.com/radkod/spotify-analyz",
+      "homepage": "https://soundshift-4no7.onrender.com",
+      "language": "JavaScript",
+      "features": [
+        "Genre evolution timeline with stacked area charts",
+        "Year-by-year drill-down with song lists",
+        "3-tier genre enrichment: Spotify, Last.fm, MusicBrainz",
+        "Shareable image cards (Story, Post, Twitter formats)",
+        "Public landing page with community stats",
+        "Multi-language support (TR/EN)",
+        "Mobile-friendly with Web Share API"
+      ],
+      "screenshots": [
+        "https://raw.githubusercontent.com/radkod/spotify-analyz/main/ss/1.png",
+        "https://raw.githubusercontent.com/radkod/spotify-analyz/main/ss/2.png",
+        "https://raw.githubusercontent.com/radkod/spotify-analyz/main/ss/3.png",
+        "https://raw.githubusercontent.com/radkod/spotify-analyz/main/ss/4.png"
+      ]
+    }
+  ]
+}

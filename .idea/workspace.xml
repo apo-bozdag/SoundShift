@@ -4,9 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ff9b5464-d79d-4941-8aac-a140fc3f0196" name="Changes" comment="mobile share api updated &amp; ui improvements">
+    <list default="true" id="ff9b5464-d79d-4941-8aac-a140fc3f0196" name="Changes" comment="ios share bugfix">
+      <change afterPath="$PROJECT_DIR$/ss/1.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ss/2.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ss/3.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ss/4.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/sync.js" beforeDir="false" afterPath="$PROJECT_DIR$/server/sync.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -93,7 +96,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1773415768139</updated>
-      <workItem from="1773415769255" duration="16654000" />
+      <workItem from="1773415769255" duration="17481000" />
     </task>
     <task id="LOCAL-00001" summary="server sync update">
       <option name="closed" value="true" />
@@ -175,7 +178,23 @@
       <option name="project" value="LOCAL" />
       <updated>1773529094927</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="sync bugfix">
+      <option name="closed" value="true" />
+      <created>1773529647797</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1773529647797</updated>
+    </task>
+    <task id="LOCAL-00012" summary="ios share bugfix">
+      <option name="closed" value="true" />
+      <created>1773529726390</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1773529726390</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -190,6 +209,8 @@
     <MESSAGE value="home skeleton loader" />
     <MESSAGE value="skeleton loader for statistic page" />
     <MESSAGE value="mobile share api updated &amp; ui improvements" />
-    <option name="LAST_COMMIT_MESSAGE" value="mobile share api updated &amp; ui improvements" />
+    <MESSAGE value="sync bugfix" />
+    <MESSAGE value="ios share bugfix" />
+    <option name="LAST_COMMIT_MESSAGE" value="ios share bugfix" />
   </component>
 </project>
