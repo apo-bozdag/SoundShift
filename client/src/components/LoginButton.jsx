@@ -146,7 +146,7 @@ export default function LoginButton({ onLogin }) {
       )}
 
       <footer className="landing-footer">
-        soundshift.app
+        soundshift-4no7.onrender.com
       </footer>
     </div>
   );
