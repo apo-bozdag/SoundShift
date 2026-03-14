@@ -264,12 +264,13 @@ function computeTimeline(songs, artistsMap) {
 }
 
 // Helper: Supabase'den 1000+ satır çekmek için paginated select
-async function fetchAll(query) {
+// Çağırırken .order() zincirlenmiş olmalı (satır kaymasını önler)
+async function fetchAll(queryFn) {
   const PAGE = 1000;
   let all = [];
   let from = 0;
   while (true) {
-    const { data, error } = await query.range(from, from + PAGE - 1);
+    const { data, error } = await queryFn().range(from, from + PAGE - 1);
     if (error) throw error;
     if (!data || data.length === 0) break;
     all.push(...data);
@@ -330,8 +331,8 @@ export async function syncUser(userId, onProgress, abortSignal) {
     }
 
     // Tüm şarkılardan unique artist ID'leri topla (1000+ satır için paginate)
-    const allSongs = await fetchAll(
-      supabase.from('liked_songs').select('artist_ids, artist_names').eq('user_id', userId)
+    const allSongs = await fetchAll(() =>
+      supabase.from('liked_songs').select('artist_ids, artist_names').eq('user_id', userId).order('id')
     );
 
     const artistMap = new Map();
@@ -387,8 +388,8 @@ export async function syncUser(userId, onProgress, abortSignal) {
     onProgress?.({ step: 'timeline', message: 'Timeline hesaplanıyor...' });
 
     // Timeline hesapla: tüm şarkıları ve artist'leri çek (paginated)
-    const allUserSongs = await fetchAll(
-      supabase.from('liked_songs').select('*').eq('user_id', userId)
+    const allUserSongs = await fetchAll(() =>
+      supabase.from('liked_songs').select('*').eq('user_id', userId).order('id')
     );
 
     const allArtistIds = [...new Set(allUserSongs.flatMap(s => s.artist_ids))];

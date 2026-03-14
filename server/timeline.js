@@ -14,12 +14,12 @@ function chunkArray(arr, size) {
 }
 
 // Helper: Supabase'den 1000+ satır çekmek için paginated select
-async function fetchAll(query) {
+async function fetchAll(queryFn) {
   const PAGE = 1000;
   let all = [];
   let from = 0;
   while (true) {
-    const { data, error } = await query.range(from, from + PAGE - 1);
+    const { data, error } = await queryFn().range(from, from + PAGE - 1);
     if (error) throw error;
     if (!data || data.length === 0) break;
     all.push(...data);
@@ -124,8 +124,8 @@ router.get('/stats', requireAuth, async (req, res) => {
     .sort((a, b) => b[1] - a[1])[0];
 
   // Unique artists (paginated, 1000+ şarkı olabilir)
-  const artistData = await fetchAll(
-    supabase.from('liked_songs').select('artist_ids').eq('user_id', req.userId)
+  const artistData = await fetchAll(() =>
+    supabase.from('liked_songs').select('artist_ids').eq('user_id', req.userId).order('id')
   );
 
   const uniqueArtists = new Set();
@@ -172,8 +172,8 @@ router.get('/public-stats', async (req, res) => {
       .limit(10);
 
     // En popüler artist'ler (en çok şarkıda geçen)
-    const allSongs = await fetchAll(
-      supabase.from('liked_songs').select('artist_ids')
+    const allSongs = await fetchAll(() =>
+      supabase.from('liked_songs').select('artist_ids').order('id')
     );
 
     const artistFreq = {};
