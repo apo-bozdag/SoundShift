@@ -49,6 +49,17 @@ export default {
   'share.journey': 'My Genre Journey',
   'share.text': 'Discovered my music taste evolution with SoundShift!',
 
+  // Landing
+  'landing.hero': 'How did your music taste evolve?',
+  'landing.heroSub': 'Analyze your Spotify likes, discover your genre journey.',
+  'landing.totalUsers': 'Users',
+  'landing.totalSongs': 'Songs Analyzed',
+  'landing.totalArtists': 'Artists',
+  'landing.recentUsers': 'Recently Joined',
+  'landing.topArtists': 'Most Popular Artists',
+  'landing.topGenres': 'Genre Breakdown',
+  'landing.songs': 'songs',
+
   // Empty
   'empty.noData': 'No data yet. Start a sync to fetch your liked songs.',
 };

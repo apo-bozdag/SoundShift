@@ -96,50 +96,61 @@
   color: var(--text-bright);
 }
 
-.login-lang {
-  position: absolute;
-  top: 24px;
+/* ========== Landing Page ========== */
+.landing {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
+}
+
+.landing-lang {
+  position: fixed;
+  top: 20px;
   right: 24px;
+  z-index: 10;
 }
 
-/* Login */
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: radial-gradient(ellipse at center, #1a1a2e 0%, var(--bg) 70%);
-}
-
-.login-card {
+/* Hero */
+.landing-hero {
   text-align: center;
-  padding: 48px;
+  padding: 80px 0 48px;
 }
 
-.login-icon {
-  margin-bottom: 24px;
-  opacity: 0.9;
-}
-
-.login-card h1 {
-  font-size: 40px;
-  color: var(--text-bright);
-  margin-bottom: 12px;
-  letter-spacing: -1px;
+.landing-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+  font-size: 22px;
   font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -0.5px;
 }
 
-.login-card p {
+.landing-title {
+  font-size: 42px;
+  font-weight: 800;
+  color: var(--text-bright);
+  letter-spacing: -1.5px;
+  line-height: 1.1;
+  margin-bottom: 14px;
+}
+
+.landing-subtitle {
   color: var(--text);
+  font-size: 17px;
   margin-bottom: 36px;
-  font-size: 16px;
+  line-height: 1.5;
 }
 
 .login-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   background: var(--accent);
   color: #000;
   border: none;
-  padding: 14px 48px;
+  padding: 14px 40px;
   border-radius: 500px;
   font-size: 16px;
   font-weight: 700;
@@ -152,6 +163,220 @@
   background: var(--accent-hover);
   transform: scale(1.04);
   box-shadow: 0 8px 24px rgba(29, 185, 84, 0.3);
+}
+
+/* Counters */
+.landing-counters {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  margin-bottom: 48px;
+}
+
+.landing-counter {
+  text-align: center;
+}
+
+.counter-val {
+  display: block;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-bright);
+  letter-spacing: -1px;
+}
+
+.counter-lbl {
+  display: block;
+  font-size: 12px;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+/* Grid */
+.landing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+/* Cards */
+.landing-card {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid var(--border);
+}
+
+.landing-card-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text);
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+/* Recent Users / Avatars */
+.landing-avatars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.landing-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 56px;
+}
+
+.landing-avatar img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--text);
+  font-size: 16px;
+}
+
+.avatar-name {
+  font-size: 10px;
+  color: var(--text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+/* Top Artists List */
+.landing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.landing-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.list-rank {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.5;
+  width: 24px;
+  text-align: right;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.list-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-name {
+  display: block;
+  font-size: 13px;
+  color: var(--text-bright);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text);
+}
+
+.list-genre-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.list-count {
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/* Genre Bars */
+.landing-genres {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.landing-genre-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.landing-genre-name {
+  width: 80px;
+  font-size: 12px;
+  color: var(--text-bright);
+  text-align: right;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.landing-genre-bar {
+  flex: 1;
+  height: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.landing-genre-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.6s ease;
+}
+
+/* Footer */
+.landing-footer {
+  text-align: center;
+  color: var(--text);
+  opacity: 0.3;
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 24px 0;
+}
+
+/* Responsive landing */
+@media (max-width: 640px) {
+  .landing-title { font-size: 28px; }
+  .landing-counters { gap: 24px; }
+  .counter-val { font-size: 24px; }
+  .landing-grid { grid-template-columns: 1fr; }
+  .landing-hero { padding: 48px 0 32px; }
 }
 
 /* Sync */

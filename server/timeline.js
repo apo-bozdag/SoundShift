@@ -131,4 +131,91 @@ router.get('/stats', requireAuth, async (req, res) => {
   });
 });
 
+// Public: anasayfa istatistikleri (auth gerektirmez)
+router.get('/public-stats', async (req, res) => {
+  try {
+    // Toplam kullanıcı sayısı
+    const { count: userCount } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true });
+
+    // Toplam şarkı sayısı
+    const { count: songCount } = await supabase
+      .from('liked_songs')
+      .select('*', { count: 'exact', head: true });
+
+    // Toplam artist sayısı
+    const { count: artistCount } = await supabase
+      .from('artists')
+      .select('*', { count: 'exact', head: true });
+
+    // Son üye olanlar (display_name + profile_image)
+    const { data: recentUsers } = await supabase
+      .from('users')
+      .select('display_name, profile_image, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    // En popüler artist'ler (en çok şarkıda geçen)
+    const { data: allSongs } = await supabase
+      .from('liked_songs')
+      .select('artist_ids');
+
+    const artistFreq = {};
+    for (const song of (allSongs || [])) {
+      for (const id of song.artist_ids) {
+        artistFreq[id] = (artistFreq[id] || 0) + 1;
+      }
+    }
+    const topArtistIds = Object.entries(artistFreq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([id]) => id);
+
+    let topArtists = [];
+    if (topArtistIds.length > 0) {
+      const { data } = await supabase
+        .from('artists')
+        .select('spotify_id, name, macro_genres')
+        .in('spotify_id', topArtistIds);
+      topArtists = (data || []).map(a => ({
+        name: a.name,
+        genre: a.macro_genres?.[0] || 'Unknown',
+        count: artistFreq[a.spotify_id],
+      })).sort((a, b) => b.count - a.count);
+    }
+
+    // Genel genre dağılımı
+    const { data: allArtists } = await supabase
+      .from('artists')
+      .select('macro_genres');
+
+    const genreTotals = {};
+    for (const a of (allArtists || [])) {
+      for (const g of (a.macro_genres || [])) {
+        if (g !== 'Unknown') genreTotals[g] = (genreTotals[g] || 0) + 1;
+      }
+    }
+    const topGenres = Object.entries(genreTotals)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name, count]) => ({ name, count }));
+
+    res.json({
+      userCount: userCount || 0,
+      songCount: songCount || 0,
+      artistCount: artistCount || 0,
+      recentUsers: (recentUsers || []).map(u => ({
+        displayName: u.display_name,
+        profileImage: u.profile_image,
+      })),
+      topArtists,
+      topGenres,
+    });
+  } catch (err) {
+    console.error('Public stats error:', err);
+    res.json({ userCount: 0, songCount: 0, artistCount: 0, recentUsers: [], topArtists: [], topGenres: [] });
+  }
+});
+
 export default router;

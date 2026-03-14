@@ -49,6 +49,17 @@ export default {
   'share.journey': 'Genre Yolculuğum',
   'share.text': 'SoundShift ile müzik zevkimin evrimini keşfettim!',
 
+  // Landing
+  'landing.hero': 'Müzik zevkin nasıl evrildi?',
+  'landing.heroSub': 'Spotify beğenilerini analiz et, genre yolculuğunu keşfet.',
+  'landing.totalUsers': 'Kullanıcı',
+  'landing.totalSongs': 'Analiz Edilen Şarkı',
+  'landing.totalArtists': 'Sanatçı',
+  'landing.recentUsers': 'Son Katılanlar',
+  'landing.topArtists': 'En Popüler Sanatçılar',
+  'landing.topGenres': 'Genre Dağılımı',
+  'landing.songs': 'şarkı',
+
   // Empty
   'empty.noData': 'Henüz veri yok. Sync başlatarak liked songs verini çekebilirsin.',
 };
