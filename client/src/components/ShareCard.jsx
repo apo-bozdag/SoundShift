@@ -188,7 +188,7 @@ export default function ShareCard({ stats, timeline, user, onClose }) {
 
             {/* Footer */}
             <div className="share-footer">
-              soundshift.app
+              soundshift-4no7.onrender.com
             </div>
           </div>
         </div>
