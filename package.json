@@ -1,0 +1,25 @@
+{
+  "name": "spotify-genre-evolution",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev:server": "nodemon --ignore db.json --ignore client/ server/index.js",
+    "dev:client": "cd client && npm run dev",
+    "dev": "concurrently \"npm:dev:server\" \"npm:dev:client\"",
+    "build": "cd client && npm install && npm run build",
+    "start": "node server/index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.99.1",
+    "bottleneck": "^2.19.5",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.4"
+  }
+}

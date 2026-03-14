@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: soundshift
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_SECRET_KEY
+        sync: false
+      - key: LASTFM_API_KEY
+        sync: false
+      - key: REDIRECT_URI
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
