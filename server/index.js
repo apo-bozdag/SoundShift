@@ -37,7 +37,11 @@ app.get('/api/sync/start', requireAuth, async (req, res) => {
   res.flushHeaders();
 
   let closed = false;
-  req.on('close', () => { closed = true; });
+  const abortController = new AbortController();
+  req.on('close', () => {
+    closed = true;
+    abortController.abort();
+  });
 
   const sendEvent = (data) => {
     if (!closed) {
@@ -46,7 +50,7 @@ app.get('/api/sync/start', requireAuth, async (req, res) => {
   };
 
   try {
-    await syncUser(req.userId, sendEvent);
+    await syncUser(req.userId, sendEvent, abortController.signal);
   } catch (err) {
     console.error('Sync error:', err);
     sendEvent({ step: 'error', message: err.message });

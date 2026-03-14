@@ -5,8 +5,19 @@ import { normalizeGenre, getArtistMacroGenres } from './genreMap.js';
 
 const LASTFM_KEY = process.env.LASTFM_API_KEY;
 
-// Per-user sync lock
-const syncLocks = new Set();
+// Per-user sync lock with timeout (max 10 dk)
+const syncLocks = new Map();
+
+function acquireLock(userId) {
+  const existing = syncLocks.get(userId);
+  // 10 dk'dan eski lock'ları temizle
+  if (existing && Date.now() - existing > 10 * 60 * 1000) {
+    syncLocks.delete(userId);
+  }
+  if (syncLocks.has(userId)) return false;
+  syncLocks.set(userId, Date.now());
+  return true;
+}
 
 // Spotify API fetch with rate limiting and error handling
 async function spotifyFetch(url, accessToken) {
@@ -259,12 +270,11 @@ function chunkArray(arr, size) {
 }
 
 // Ana sync fonksiyonu
-export async function syncUser(userId, onProgress) {
-  if (syncLocks.has(userId)) {
+export async function syncUser(userId, onProgress, abortSignal) {
+  if (!acquireLock(userId)) {
     throw new Error('Sync already in progress');
   }
 
-  syncLocks.add(userId);
   try {
     const accessToken = await getValidToken(userId);
 
@@ -340,6 +350,10 @@ export async function syncUser(userId, onProgress) {
     const artistEntries = [...artistMap.entries()];
 
     for (let i = 0; i < artistEntries.length; i += BATCH_SIZE) {
+      if (abortSignal?.aborted) {
+        console.log('Sync aborted by client disconnect');
+        break;
+      }
       const batch = artistEntries.slice(i, i + BATCH_SIZE);
       await Promise.all(
         batch.map(async ([artistId, artistName]) => {

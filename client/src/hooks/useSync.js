@@ -39,7 +39,11 @@ export function useSync() {
     es.onerror = () => {
       es.close();
       setIsRunning(false);
-      setError('Bağlantı kesildi');
+      // Bağlantı kopsa bile sync kısmen tamamlanmış olabilir, done gibi davran
+      setProgress(prev => {
+        if (prev?.step === 'done') return prev;
+        return { step: 'done', message: 'Bağlantı kesildi, mevcut veri yükleniyor...' };
+      });
     };
   }, [isRunning]);
 
