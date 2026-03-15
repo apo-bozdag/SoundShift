@@ -7,6 +7,17 @@ export default {
   // Header
   'header.logout': 'Çıkış',
 
+  // Navigation
+  'nav.home': 'Ana Sayfa',
+  'nav.explore': 'Keşfet',
+  'nav.match': 'Eşleşme',
+  'nav.playlists': 'Playlistler',
+
+  // Home
+  'home.goodMorning': 'Günaydın',
+  'home.goodAfternoon': 'İyi günler',
+  'home.goodEvening': 'İyi akşamlar',
+
   // Sync
   'sync.start': 'Sync Başlat',
   'sync.running': 'Sync devam ediyor...',
@@ -59,7 +70,7 @@ export default {
   'landing.totalUsers': 'Kullanıcı',
   'landing.totalSongs': 'Analiz Edilen Şarkı',
   'landing.totalArtists': 'Sanatçı',
-  'landing.yearsOfMusic': 'Yıllık Müzik',
+  'landing.yearsOfMusic': 'Yıl Kapsam',
   'landing.recentUsers': 'Son Katılanlar',
   'landing.topArtists': 'En Popüler Sanatçılar',
   'landing.topGenres': 'Genre Dağılımı',
@@ -79,6 +90,24 @@ export default {
   'header.community': 'Keşfet',
   'match.you': 'Sen',
   'match.genreBreakdown': 'Genre Karşılaştırması',
+  'match.filterAll': 'Tümü',
+  'match.sortHighest': 'En Yüksek Eşleşme',
+  'match.sortLowest': 'En Düşük Eşleşme',
+  'match.minMatch': 'Min {pct}%',
+  'match.results': '{count} sonuç',
+
+  // Sync - Playlists
+  'sync.playlists.fetching': 'Playlist\'ler çekiliyor...',
+  'sync.playlists.progress': 'Playlist\'ler senkronize ediliyor... {current}/{total}',
+
+  // Playlist
+  'playlist.title': 'Playlist\'lerin',
+  'playlist.tracks': '{count} şarkı',
+  'playlist.genres': 'Genre Dağılımı',
+  'playlist.compatibility': 'Zevkinle uyum',
+  'playlist.noPlaylists': 'Henüz senkronize edilmiş playlist yok',
+  'playlist.empty': 'Playlist detayları yüklenemedi',
+  'community.playlists': 'Topluluk Playlist\'leri',
 
   // Empty
   'empty.noData': 'Henüz veri yok. Sync başlatarak liked songs verini çekebilirsin.',

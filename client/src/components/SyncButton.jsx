@@ -24,6 +24,12 @@ export default function SyncButton({ progress, isRunning, error, onSync, onReset
       }
       return progress.message || t('sync.artists.fetching');
     }
+    if (progress.step === 'playlists') {
+      if (progress.current && progress.total) {
+        return t('sync.playlists.progress', { current: progress.current, total: progress.total });
+      }
+      return progress.message || t('sync.playlists.fetching');
+    }
     if (progress.step === 'timeline') return t('sync.timeline');
     if (progress.step === 'done') return t('sync.done');
     if (progress.step === 'error') return t('sync.error', { message: progress.message });

@@ -42,3 +42,33 @@ CREATE TABLE liked_songs (
 CREATE INDEX idx_liked_songs_user_id ON liked_songs(user_id);
 CREATE INDEX idx_liked_songs_user_added ON liked_songs(user_id, added_at);
 CREATE INDEX idx_artists_fetched_at ON artists(fetched_at);
+
+-- Playlists
+CREATE TABLE playlists (
+  id                TEXT PRIMARY KEY,
+  user_id           TEXT NOT NULL REFERENCES users(spotify_id) ON DELETE CASCADE,
+  spotify_id        TEXT NOT NULL,
+  name              TEXT NOT NULL,
+  description       TEXT,
+  image_url         TEXT,
+  track_count       INT DEFAULT 0,
+  snapshot_id       TEXT,
+  genre_distribution JSONB DEFAULT '{}',
+  synced_at         TIMESTAMPTZ,
+  created_at        TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE playlist_tracks (
+  id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  playlist_id   TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+  track_id      TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  artists       TEXT[] DEFAULT '{}',
+  artist_ids    JSONB DEFAULT '[]',
+  added_at      TIMESTAMPTZ,
+  genre         TEXT,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_playlists_user_id ON playlists(user_id);
+CREATE INDEX idx_playlist_tracks_playlist_id ON playlist_tracks(playlist_id);

@@ -26,6 +26,10 @@ export function useSync() {
           setIsRunning(false);
         }
 
+        if (data.step === 'playlists') {
+          setProgress(data);
+        }
+
         if (data.step === 'error') {
           es.close();
           setIsRunning(false);

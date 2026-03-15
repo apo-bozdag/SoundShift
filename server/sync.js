@@ -311,6 +311,130 @@ function chunkArray(arr, size) {
   return chunks;
 }
 
+// 4. Playlist sync
+async function syncPlaylists(userId, accessToken, broadcast, abortSignal, artistsMap) {
+  broadcast({ step: 'playlists', message: 'Playlist\'ler çekiliyor...' });
+
+  // Fetch all playlists (paginated)
+  const playlists = [];
+  let nextUrl = 'https://api.spotify.com/v1/me/playlists?limit=50&offset=0';
+
+  while (nextUrl) {
+    if (abortSignal?.aborted) break;
+    const data = await spotifyFetch(nextUrl, accessToken);
+    playlists.push(...(data.items || []));
+    nextUrl = data.next;
+  }
+
+  // Filter out "Liked Songs" auto-playlist (it has no id sometimes, or type !== 'playlist')
+  const userPlaylists = playlists.filter(p => p && p.id && p.type === 'playlist');
+
+  if (userPlaylists.length === 0) {
+    broadcast({ step: 'playlists', message: 'Playlist bulunamadı', current: 0, total: 0 });
+    return;
+  }
+
+  broadcast({ step: 'playlists', total: userPlaylists.length, current: 0 });
+
+  for (let i = 0; i < userPlaylists.length; i++) {
+    if (abortSignal?.aborted) break;
+    const pl = userPlaylists[i];
+    const playlistId = `${userId}:${pl.id}`;
+
+    // Check snapshot_id for incremental sync
+    const { data: existing } = await supabase
+      .from('playlists')
+      .select('snapshot_id')
+      .eq('id', playlistId)
+      .single();
+
+    if (existing?.snapshot_id === pl.snapshot_id) {
+      broadcast({ step: 'playlists', current: i + 1, total: userPlaylists.length, playlistName: pl.name });
+      continue; // unchanged
+    }
+
+    // Fetch playlist tracks (paginated)
+    const tracks = [];
+    let trackUrl = `https://api.spotify.com/v1/playlists/${pl.id}/tracks?limit=100&offset=0`;
+
+    while (trackUrl) {
+      if (abortSignal?.aborted) break;
+      const trackData = await spotifyFetch(trackUrl, accessToken);
+      for (const item of (trackData.items || [])) {
+        if (!item.track || item.track.is_local) continue;
+        tracks.push({
+          trackId: item.track.id,
+          name: item.track.name,
+          artistIds: item.track.artists.map(a => a.id),
+          artistNames: item.track.artists.map(a => a.name),
+          addedAt: item.added_at,
+        });
+      }
+      trackUrl = trackData.next;
+    }
+
+    // Compute genre distribution from artistsMap
+    const genreCounts = {};
+    let genreTotal = 0;
+    for (const track of tracks) {
+      for (const artistId of track.artistIds) {
+        const artist = artistsMap.get(artistId);
+        if (!artist) continue;
+        for (const genre of (artist.macro_genres || [])) {
+          if (genre === 'Unknown') continue;
+          genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+          genreTotal++;
+        }
+      }
+    }
+
+    // Normalize to percentages
+    const genreDistribution = {};
+    if (genreTotal > 0) {
+      for (const [genre, count] of Object.entries(genreCounts)) {
+        genreDistribution[genre] = Math.round((count / genreTotal) * 100) / 100;
+      }
+    }
+
+    // Upsert playlist
+    await supabase.from('playlists').upsert({
+      id: playlistId,
+      user_id: userId,
+      spotify_id: pl.id,
+      name: pl.name,
+      description: pl.description || null,
+      image_url: pl.images?.[0]?.url || null,
+      track_count: tracks.length,
+      snapshot_id: pl.snapshot_id,
+      genre_distribution: genreDistribution,
+      synced_at: new Date().toISOString(),
+    });
+
+    // Delete old tracks and insert new ones
+    await supabase.from('playlist_tracks').delete().eq('playlist_id', playlistId);
+
+    if (tracks.length > 0) {
+      const trackRows = tracks.map(t => ({
+        playlist_id: playlistId,
+        track_id: t.trackId,
+        name: t.name,
+        artists: t.artistNames,
+        artist_ids: t.artistIds,
+        added_at: t.addedAt,
+        genre: t.artistIds
+          .flatMap(id => artistsMap.get(id)?.macro_genres || [])
+          .filter(g => g !== 'Unknown')[0] || null,
+      }));
+
+      for (let j = 0; j < trackRows.length; j += 500) {
+        await supabase.from('playlist_tracks').insert(trackRows.slice(j, j + 500));
+      }
+    }
+
+    broadcast({ step: 'playlists', current: i + 1, total: userPlaylists.length, playlistName: pl.name });
+  }
+}
+
 // Ana sync fonksiyonu
 export async function syncUser(userId, onProgress, abortSignal) {
   if (!acquireLock(userId)) {
@@ -437,7 +561,45 @@ export async function syncUser(userId, onProgress, abortSignal) {
     }
     const artistsMap = new Map(allArtists.map(a => [a.spotify_id, a]));
 
-    const timeline = computeTimeline(allUserSongs, artistsMap);
+    // Playlist sync (timeline'dan önce, böylece playlist track'leri timeline'a dahil edilebilir)
+    if (!abortSignal?.aborted) {
+      const playlistToken = await getValidToken(userId);
+      await syncPlaylists(userId, playlistToken, broadcast, abortSignal, artistsMap);
+    }
+
+    // Playlist track'lerini çek ve liked songs ile birleştir (duplicate'siz)
+    const playlistTracks = await fetchAll(() =>
+      supabase.from('playlist_tracks')
+        .select('track_id, name, artists, artist_ids, added_at')
+        .like('playlist_id', `${userId}:%`)
+        .order('added_at')
+    );
+
+    // Liked song track_id'lerini set'e al
+    const likedTrackIds = new Set(allUserSongs.map(s => s.track_id));
+
+    // Playlist'ten gelen ama liked'da olmayan şarkıları ekle
+    const extraSongs = playlistTracks
+      .filter(pt => pt.track_id && pt.added_at && !likedTrackIds.has(pt.track_id))
+      .map(pt => ({
+        track_id: pt.track_id,
+        name: pt.name,
+        artist_ids: pt.artist_ids || [],
+        artist_names: pt.artists || [],
+        added_at: pt.added_at,
+        user_id: userId,
+      }));
+
+    // Playlist extra'lardan gelen artist'leri de artistsMap'e ekle
+    const extraArtistIds = [...new Set(extraSongs.flatMap(s => s.artist_ids))].filter(id => !artistsMap.has(id));
+    for (const chunk of chunkArray(extraArtistIds, 300)) {
+      const { data } = await supabase.from('artists').select('*').in('spotify_id', chunk);
+      if (data) data.forEach(a => artistsMap.set(a.spotify_id, a));
+    }
+
+    // Birleşik timeline: liked songs + playlist-only songs
+    const combinedSongs = [...allUserSongs, ...extraSongs];
+    const timeline = computeTimeline(combinedSongs, artistsMap);
 
     // Timeline ve sync state'i güncelle
     const aborted = abortSignal?.aborted;

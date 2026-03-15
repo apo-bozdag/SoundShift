@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useI18n } from '../i18n/index.jsx';
 
 const GENRE_COLORS = {
@@ -16,28 +16,79 @@ function getMatchColor(pct) {
   return '#7F8C8D';
 }
 
-export default function MatchSection() {
+export default function MatchSection({ fullPage = false, limit, onNavigate }) {
   const { t } = useI18n();
   const [matches, setMatches] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
 
+  // Filters (only used in fullPage)
+  const [genreFilter, setGenreFilter] = useState(null);
+  const [sortDir, setSortDir] = useState('desc'); // desc = highest first
+  const [minMatch, setMinMatch] = useState(0);
+
   useEffect(() => {
-    fetch('/api/matches')
+    fetch('/api/matches', { credentials: 'include' })
       .then(r => r.json())
       .then(data => setMatches(data.matches || []))
       .catch(() => setMatches([]))
       .finally(() => setLoading(false));
   }, []);
 
+  // Extract all genres from matches for filter chips
+  const allGenres = useMemo(() => {
+    if (!matches?.length) return [];
+    const genreSet = new Set();
+    for (const m of matches) {
+      if (m.topCommonGenre) genreSet.add(m.topCommonGenre);
+      m.genreComparison?.forEach(g => genreSet.add(g.genre));
+    }
+    return [...genreSet].sort();
+  }, [matches]);
+
+  // Filtered + sorted matches
+  const filteredMatches = useMemo(() => {
+    if (!matches) return [];
+    let result = [...matches];
+
+    // Genre filter
+    if (genreFilter) {
+      result = result.filter(m =>
+        m.topCommonGenre === genreFilter ||
+        m.genreComparison?.some(g => g.genre === genreFilter)
+      );
+    }
+
+    // Min match threshold
+    if (minMatch > 0) {
+      result = result.filter(m => m.matchPercent >= minMatch);
+    }
+
+    // Sort
+    result.sort((a, b) =>
+      sortDir === 'desc'
+        ? b.matchPercent - a.matchPercent
+        : a.matchPercent - b.matchPercent
+    );
+
+    return result;
+  }, [matches, genreFilter, sortDir, minMatch]);
+
+  const displayMatches = limit ? filteredMatches.slice(0, limit) : filteredMatches;
+
   if (loading) {
     return (
-      <div className="match-section">
-        <h3 className="match-title">{t('match.title')}</h3>
-        <p className="match-subtitle">{t('match.subtitle')}</p>
-        <div className="match-list">
+      <div className={fullPage ? 'match-page-grid' : 'match-section'}>
+        {fullPage && <h1 className="page-title">{t('match.title')}</h1>}
+        {!fullPage && (
+          <>
+            <h3 className="match-title">{t('match.title')}</h3>
+            <p className="match-subtitle">{t('match.subtitle')}</p>
+          </>
+        )}
+        <div className={fullPage ? 'match-grid' : 'match-list'}>
           {[0,1,2].map(i => (
-            <div key={i} className="match-card">
+            <div key={i} className={fullPage ? 'match-grid-card' : 'match-card'}>
               <div className="skeleton skeleton-match-avatar" />
               <div style={{ flex: 1 }}>
                 <span className="skeleton skeleton-match-name" />
@@ -51,24 +102,119 @@ export default function MatchSection() {
     );
   }
 
-  if (!matches?.length) return null;
+  if (!matches?.length) {
+    if (fullPage) {
+      return (
+        <div className="match-page-grid">
+          <h1 className="page-title">{t('match.title')}</h1>
+          <p className="match-empty">{t('match.noUsers')}</p>
+        </div>
+      );
+    }
+    return null;
+  }
 
   return (
-    <div className="match-section">
-      <h3 className="match-title">{t('match.title')}</h3>
-      <p className="match-subtitle">{t('match.subtitle')}</p>
-      <div className="match-list">
-        {matches.map(m => (
-          <div key={m.userId} className="match-card" onClick={() => setSelected(m)}>
-            <div className="match-avatar">
+    <div className={fullPage ? 'match-page-grid' : 'match-section'}>
+      {fullPage && (
+        <>
+          <h1 className="page-title">{t('match.title')}</h1>
+          <p className="match-page-subtitle">{t('match.subtitle')}</p>
+
+          {/* Filter toolbar */}
+          <div className="match-filters">
+            {/* Genre chips */}
+            <div className="match-filter-chips">
+              <button
+                className={`match-chip ${!genreFilter ? 'active' : ''}`}
+                onClick={() => setGenreFilter(null)}
+              >
+                {t('match.filterAll')}
+              </button>
+              {allGenres.map(g => (
+                <button
+                  key={g}
+                  className={`match-chip ${genreFilter === g ? 'active' : ''}`}
+                  style={genreFilter === g ? { borderColor: GENRE_COLORS[g] || '#666', color: GENRE_COLORS[g] || '#666' } : {}}
+                  onClick={() => setGenreFilter(genreFilter === g ? null : g)}
+                >
+                  <span className="match-chip-dot" style={{ backgroundColor: GENRE_COLORS[g] || '#666' }} />
+                  {g}
+                </button>
+              ))}
+            </div>
+
+            {/* Sort + min match */}
+            <div className="match-filter-controls">
+              <button
+                className="match-sort-btn"
+                onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+                title={sortDir === 'desc' ? t('match.sortHighest') : t('match.sortLowest')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  {sortDir === 'desc' ? (
+                    <path d="M7 14l5-5 5 5z"/>
+                  ) : (
+                    <path d="M7 10l5 5 5-5z"/>
+                  )}
+                </svg>
+                {sortDir === 'desc' ? t('match.sortHighest') : t('match.sortLowest')}
+              </button>
+
+              <div className="match-min-slider">
+                <span className="match-min-label">{t('match.minMatch', { pct: minMatch })}</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="80"
+                  step="10"
+                  value={minMatch}
+                  onChange={e => setMinMatch(Number(e.target.value))}
+                  className="match-range"
+                />
+              </div>
+
+              <span className="match-result-count">
+                {t('match.results', { count: displayMatches.length })}
+              </span>
+            </div>
+          </div>
+        </>
+      )}
+
+      {!fullPage && (
+        <div className="match-header-row">
+          <div>
+            <h3 className="match-title">{t('match.title')}</h3>
+            <p className="match-subtitle">{t('match.subtitle')}</p>
+          </div>
+          {onNavigate && matches.length > (limit || 0) && (
+            <button className="match-show-all-btn" onClick={onNavigate}>
+              {t('landing.showAll')}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className={fullPage ? 'match-grid' : 'match-list'}>
+        {displayMatches.map(m => (
+          <div
+            key={m.userId}
+            className={fullPage ? 'match-grid-card' : 'match-card'}
+            onClick={() => setSelected(m)}
+          >
+            {/* Avatar */}
+            <div className={fullPage ? 'match-grid-avatar' : 'match-avatar'}>
               {m.profileImage ? (
                 <img src={m.profileImage} alt="" />
               ) : (
-                <div className="match-avatar-placeholder">
+                <div className={`match-avatar-placeholder ${fullPage ? 'lg' : ''}`}>
                   {m.displayName?.[0] || '?'}
                 </div>
               )}
             </div>
+
+            {/* Info */}
             <div className="match-info">
               <span className="match-name">{m.displayName}</span>
               {m.topCommonGenre && (
@@ -80,7 +226,22 @@ export default function MatchSection() {
                   {t('match.common')} {m.topCommonGenre}
                 </span>
               )}
+              {fullPage && m.genreComparison && (
+                <div className="match-grid-genres">
+                  {m.genreComparison.slice(0, 4).map(g => (
+                    <span
+                      key={g.genre}
+                      className="match-grid-genre-tag"
+                      style={{ borderColor: GENRE_COLORS[g.genre] || '#666', color: GENRE_COLORS[g.genre] || '#666' }}
+                    >
+                      {g.genre}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* Match ring */}
             <div className="match-percent" style={{ color: getMatchColor(m.matchPercent) }}>
               <svg viewBox="0 0 36 36" className="match-ring">
                 <path
@@ -104,13 +265,16 @@ export default function MatchSection() {
         ))}
       </div>
 
+      {fullPage && displayMatches.length === 0 && (
+        <p className="match-empty">{t('match.noUsers')}</p>
+      )}
+
       {/* Match Detail Modal */}
       {selected && (
         <div className="modal-overlay" onClick={() => setSelected(null)}>
           <div className="modal-content match-detail-modal" onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setSelected(null)}>&times;</button>
 
-            {/* Header: avatar + match ring */}
             <div className="match-detail-header">
               <div className="match-detail-avatar">
                 {selected.profileImage ? (
@@ -129,7 +293,6 @@ export default function MatchSection() {
               </div>
             </div>
 
-            {/* Genre comparison bars */}
             <h4 className="match-detail-section-title">{t('match.genreBreakdown')}</h4>
             <div className="match-genre-comparison">
               {selected.genreComparison?.map(g => {
@@ -169,7 +332,6 @@ export default function MatchSection() {
               })}
             </div>
 
-            {/* Legend */}
             <div className="match-legend">
               <span className="match-legend-item">
                 <span className="match-legend-dot mine" /> {t('match.you')}

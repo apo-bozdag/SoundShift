@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import authRouter, { requireAuth } from './auth.js';
 import timelineRouter from './timeline.js';
+import playlistRouter from './playlists.js';
 import { syncUser, isSyncRunning, subscribeProgress, unsubscribeProgress } from './sync.js';
 
 const app = express();
@@ -22,6 +23,7 @@ app.use(express.json());
 // Routes
 app.use('/auth', authRouter);
 app.use('/api', timelineRouter);
+app.use('/api', requireAuth, playlistRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -31,7 +33,12 @@ app.get('/api/health', (req, res) => {
 // Sync reset (baştan sync için)
 app.post('/api/sync/reset', requireAuth, async (req, res) => {
   const supabase = (await import('./db.js')).default;
-  // liked_songs ve timeline'ı temizle, last_added_at'ı sıfırla
+  // liked_songs, playlists ve timeline'ı temizle, last_added_at'ı sıfırla
+  await supabase.from('playlist_tracks').delete().in(
+    'playlist_id',
+    (await supabase.from('playlists').select('id').eq('user_id', req.userId)).data?.map(p => p.id) || []
+  );
+  await supabase.from('playlists').delete().eq('user_id', req.userId);
   await supabase.from('liked_songs').delete().eq('user_id', req.userId);
   await supabase.from('users').update({
     timeline: null,

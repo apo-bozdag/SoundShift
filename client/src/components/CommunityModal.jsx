@@ -15,6 +15,13 @@ function formatNumber(n) {
   return String(n);
 }
 
+function getCompatColor(pct) {
+  if (pct >= 80) return '#1DB954';
+  if (pct >= 60) return '#F39C12';
+  if (pct >= 40) return '#E74C3C';
+  return '#7F8C8D';
+}
+
 export default function CommunityModal({ onClose }) {
   const { t } = useI18n();
   const [stats, setStats] = useState(null);
@@ -22,6 +29,7 @@ export default function CommunityModal({ onClose }) {
   const [artistModal, setArtistModal] = useState(null);
   const [likedByModal, setLikedByModal] = useState(null);
   const [allArtists, setAllArtists] = useState(null);
+  const [communityPlaylists, setCommunityPlaylists] = useState(null);
 
   const handleShowAllArtists = () => {
     setAllArtists({ loading: true });
@@ -37,6 +45,11 @@ export default function CommunityModal({ onClose }) {
       .then(setStats)
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    fetch('/api/public-playlists', { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => setCommunityPlaylists(data.playlists || []))
+      .catch(() => setCommunityPlaylists([]));
   }, []);
 
   const handleArtistClick = (artist) => {
@@ -172,6 +185,60 @@ export default function CommunityModal({ onClose }) {
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            )}
+            {/* Community Playlists */}
+            {communityPlaylists?.length > 0 && (
+              <div className="community-card">
+                <h4 className="community-card-title">{t('community.playlists')}</h4>
+                <div className="community-playlists-list">
+                  {communityPlaylists.map((pl) => (
+                    <div key={pl.id} className="community-playlist-item">
+                      <div className="community-playlist-img">
+                        {pl.imageUrl ? (
+                          <img src={pl.imageUrl} alt="" />
+                        ) : (
+                          <div className="community-playlist-img-placeholder">&#9835;</div>
+                        )}
+                      </div>
+                      <div className="community-playlist-info">
+                        <span className="community-playlist-name">{pl.name}</span>
+                        <span className="community-playlist-meta">
+                          {pl.trackCount} {t('landing.songs')}
+                          {pl.topGenres?.length > 0 && (
+                            <>
+                              {' · '}
+                              {pl.topGenres.map(g => (
+                                <span
+                                  key={g}
+                                  className="community-playlist-genre-dot"
+                                  style={{ backgroundColor: GENRE_COLORS[g] || '#666' }}
+                                  title={g}
+                                />
+                              ))}
+                            </>
+                          )}
+                        </span>
+                        {pl.owner && (
+                          <span className="community-playlist-owner">
+                            {pl.owner.profileImage && (
+                              <img src={pl.owner.profileImage} alt="" className="community-playlist-owner-avatar" />
+                            )}
+                            {pl.owner.displayName}
+                          </span>
+                        )}
+                      </div>
+                      {pl.compatibility !== null && (
+                        <span
+                          className="community-playlist-compat"
+                          style={{ color: getCompatColor(pl.compatibility) }}
+                        >
+                          {pl.compatibility}%
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

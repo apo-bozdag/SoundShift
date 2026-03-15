@@ -7,6 +7,17 @@ export default {
   // Header
   'header.logout': 'Logout',
 
+  // Navigation
+  'nav.home': 'Home',
+  'nav.explore': 'Explore',
+  'nav.match': 'Match',
+  'nav.playlists': 'Playlists',
+
+  // Home
+  'home.goodMorning': 'Good morning',
+  'home.goodAfternoon': 'Good afternoon',
+  'home.goodEvening': 'Good evening',
+
   // Sync
   'sync.start': 'Start Sync',
   'sync.running': 'Syncing...',
@@ -79,6 +90,24 @@ export default {
   'header.community': 'Community',
   'match.you': 'You',
   'match.genreBreakdown': 'Genre Comparison',
+  'match.filterAll': 'All',
+  'match.sortHighest': 'Highest Match',
+  'match.sortLowest': 'Lowest Match',
+  'match.minMatch': 'Min {pct}%',
+  'match.results': '{count} results',
+
+  // Sync - Playlists
+  'sync.playlists.fetching': 'Fetching playlists...',
+  'sync.playlists.progress': 'Syncing playlists... {current}/{total}',
+
+  // Playlist
+  'playlist.title': 'Your Playlists',
+  'playlist.tracks': '{count} tracks',
+  'playlist.genres': 'Genre Breakdown',
+  'playlist.compatibility': 'Compatibility with your taste',
+  'playlist.noPlaylists': 'No playlists synced yet',
+  'playlist.empty': 'Could not load playlist details',
+  'community.playlists': 'Community Playlists',
 
   // Empty
   'empty.noData': 'No data yet. Start a sync to fetch your liked songs.',

@@ -168,11 +168,35 @@ router.get('/matches', requireAuth, async (req, res) => {
     }
     const myTotal = Object.values(myGenres).reduce((a, b) => a + b, 0) || 1;
 
+    // Fetch my playlists for playlist-based scoring
+    const { data: myPlaylists } = await supabase
+      .from('playlists')
+      .select('genre_distribution')
+      .eq('user_id', req.userId);
+
     // Diğer kullanıcılar
     const { data: others } = await supabase
       .from('users')
       .select('spotify_id, display_name, profile_image, timeline')
       .neq('spotify_id', req.userId);
+
+    // Pre-fetch all other users' playlists
+    const otherIds = (others || []).map(u => u.spotify_id);
+    let allOtherPlaylists = [];
+    if (otherIds.length > 0) {
+      for (const chunk of chunkArray(otherIds, 300)) {
+        const { data } = await supabase
+          .from('playlists')
+          .select('user_id, genre_distribution')
+          .in('user_id', chunk);
+        if (data) allOtherPlaylists.push(...data);
+      }
+    }
+    const playlistsByUser = new Map();
+    for (const p of allOtherPlaylists) {
+      if (!playlistsByUser.has(p.user_id)) playlistsByUser.set(p.user_id, []);
+      playlistsByUser.get(p.user_id).push(p.genre_distribution);
+    }
 
     const matches = (others || [])
       .filter(u => u.timeline?.years?.length > 0)
@@ -186,7 +210,7 @@ router.get('/matches', requireAuth, async (req, res) => {
         }
         const theirTotal = Object.values(theirGenres).reduce((a, b) => a + b, 0) || 1;
 
-        // Cosine similarity
+        // Cosine similarity (liked songs)
         const allGenres = new Set([...Object.keys(myGenres), ...Object.keys(theirGenres)]);
         let dotProduct = 0, magA = 0, magB = 0;
         for (const g of allGenres) {
@@ -196,9 +220,43 @@ router.get('/matches', requireAuth, async (req, res) => {
           magA += a * a;
           magB += b * b;
         }
-        const similarity = (magA && magB)
-          ? Math.round((dotProduct / (Math.sqrt(magA) * Math.sqrt(magB))) * 100)
+        const likedSimilarity = (magA && magB)
+          ? (dotProduct / (Math.sqrt(magA) * Math.sqrt(magB))) * 100
           : 0;
+
+        // Playlist overlap score
+        const myPls = (myPlaylists || []).map(p => p.genre_distribution).filter(d => d && Object.keys(d).length > 0);
+        const theirPls = (playlistsByUser.get(u.spotify_id) || []).filter(d => d && Object.keys(d).length > 0);
+
+        let playlistScore = 0;
+        if (myPls.length > 0 && theirPls.length > 0) {
+          let totalSim = 0;
+          let comparisons = 0;
+          for (const myDist of myPls) {
+            for (const theirDist of theirPls) {
+              const pGenres = new Set([...Object.keys(myDist), ...Object.keys(theirDist)]);
+              const myPTotal = Object.values(myDist).reduce((a, b) => a + b, 0) || 1;
+              const thPTotal = Object.values(theirDist).reduce((a, b) => a + b, 0) || 1;
+              let dp = 0, mA = 0, mB = 0;
+              for (const g of pGenres) {
+                const va = (myDist[g] || 0) / myPTotal;
+                const vb = (theirDist[g] || 0) / thPTotal;
+                dp += va * vb;
+                mA += va * va;
+                mB += vb * vb;
+              }
+              if (mA && mB) totalSim += (dp / (Math.sqrt(mA) * Math.sqrt(mB))) * 100;
+              comparisons++;
+            }
+          }
+          playlistScore = comparisons > 0 ? totalSim / comparisons : 0;
+        }
+
+        // Combined: 60% liked songs + 40% playlist overlap (fallback to 100% liked if no playlists)
+        const hasPlaylists = myPls.length > 0 && theirPls.length > 0;
+        const similarity = hasPlaylists
+          ? Math.round(likedSimilarity * 0.6 + playlistScore * 0.4)
+          : Math.round(likedSimilarity);
 
         // Ortak en güçlü genre
         let topCommon = null;
@@ -420,7 +478,7 @@ router.get('/public-artist-songs/:artistId', async (req, res) => {
     const allSongs = await fetchAll(() =>
       supabase
         .from('liked_songs')
-        .select('name, artist_ids, artist_names, added_at, user_id')
+        .select('track_id, name, artist_ids, artist_names, added_at, user_id')
         .filter('artist_ids', 'cs', JSON.stringify([artistId]))
         .order('added_at', { ascending: false })
     );
@@ -447,6 +505,7 @@ router.get('/public-artist-songs/:artistId', async (req, res) => {
       const key = `${s.name}-${(s.artist_names || [])[0]}`;
       if (!seen.has(key)) {
         seen.set(key, {
+          trackId: s.track_id,
           name: s.name,
           artists: s.artist_names || [],
           addedAt: s.added_at,
@@ -474,6 +533,99 @@ router.get('/public-artist-songs/:artistId', async (req, res) => {
   } catch (err) {
     console.error('Public artist songs error:', err);
     res.status(500).json({ error: 'Failed to fetch artist songs' });
+  }
+});
+
+// Public: tüm community playlist'leri (opsiyonel auth ile uyum yüzdesi)
+router.get('/public-playlists', async (req, res) => {
+  try {
+    // Tüm playlist'leri kullanıcı bilgisiyle çek
+    const { data: playlists } = await supabase
+      .from('playlists')
+      .select('id, spotify_id, user_id, name, description, image_url, track_count, genre_distribution, synced_at')
+      .order('track_count', { ascending: false });
+
+    if (!playlists?.length) {
+      return res.json({ playlists: [] });
+    }
+
+    // Playlist sahiplerinin bilgilerini çek
+    const ownerIds = [...new Set(playlists.map(p => p.user_id))];
+    let owners = [];
+    for (const chunk of chunkArray(ownerIds, 300)) {
+      const { data } = await supabase
+        .from('users')
+        .select('spotify_id, display_name, profile_image')
+        .in('spotify_id', chunk);
+      if (data) owners.push(...data);
+    }
+    const ownerMap = new Map(owners.map(u => [u.spotify_id, u]));
+
+    // Login olan kullanıcı varsa uyum yüzdesi hesapla
+    let userGenres = null;
+    let userTotal = 1;
+    const userId = req.cookies?.spotify_user_id;
+    if (userId) {
+      const { data: user } = await supabase
+        .from('users')
+        .select('timeline')
+        .eq('spotify_id', userId)
+        .single();
+
+      if (user?.timeline?.years?.length) {
+        userGenres = {};
+        for (const y of user.timeline.years) {
+          for (const [g, c] of Object.entries(y.genres)) {
+            if (g !== 'Unknown') userGenres[g] = (userGenres[g] || 0) + c;
+          }
+        }
+        userTotal = Object.values(userGenres).reduce((a, b) => a + b, 0) || 1;
+      }
+    }
+
+    const result = playlists.map(p => {
+      const owner = ownerMap.get(p.user_id);
+      const topGenres = Object.entries(p.genre_distribution || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([name]) => name);
+
+      let compatibility = null;
+      if (userGenres && p.genre_distribution) {
+        const plGenres = p.genre_distribution;
+        const plTotal = Object.values(plGenres).reduce((a, b) => a + b, 0) || 1;
+        const allG = new Set([...Object.keys(userGenres), ...Object.keys(plGenres)]);
+        let dp = 0, mA = 0, mB = 0;
+        for (const g of allG) {
+          const a = (userGenres[g] || 0) / userTotal;
+          const b = (plGenres[g] || 0) / plTotal;
+          dp += a * b;
+          mA += a * a;
+          mB += b * b;
+        }
+        compatibility = (mA && mB)
+          ? Math.round((dp / (Math.sqrt(mA) * Math.sqrt(mB))) * 100)
+          : 0;
+      }
+
+      return {
+        id: p.spotify_id,
+        name: p.name,
+        imageUrl: p.image_url,
+        trackCount: p.track_count,
+        topGenres,
+        compatibility,
+        owner: owner ? {
+          displayName: owner.display_name,
+          profileImage: owner.profile_image,
+        } : null,
+      };
+    });
+
+    res.json({ playlists: result });
+  } catch (err) {
+    console.error('Public playlists error:', err);
+    res.json({ playlists: [] });
   }
 });
 

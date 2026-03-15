@@ -130,6 +130,9 @@ export default function ShareCard({ stats, timeline, user, onClose }) {
   const previewWidth = isWide ? 420 : isSquare ? 340 : 300;
   const previewHeight = Math.round(previewWidth * (fmt.h / fmt.w));
 
+  // Dynamic base font size - scales all em values proportionally
+  const baseFontSize = previewWidth * (isWide ? 0.038 : isSquare ? 0.042 : 0.046);
+
   // Inline styles (html2canvas CSS class'ları yakalayamıyor)
   const S = {
     card: {
@@ -138,6 +141,7 @@ export default function ShareCard({ stats, timeline, user, onClose }) {
       borderRadius: 0,
       overflow: 'hidden',
       flexShrink: 0,
+      fontSize: baseFontSize,
     },
     inner: {
       width: '100%',

@@ -1,26 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useSync } from './hooks/useSync';
 import { useTimeline } from './hooks/useTimeline';
-import { useI18n } from './i18n/index.jsx';
+import { useRouter } from './hooks/useRouter';
 import LoginButton from './components/LoginButton';
-import SyncButton from './components/SyncButton';
-import StatsCards from './components/StatsCards';
-import TimelineChart from './components/TimelineChart';
-import YearDetail from './components/YearDetail';
-import ShareCard from './components/ShareCard';
-import MatchSection from './components/MatchSection';
-import CommunityModal from './components/CommunityModal';
-import LangSwitch from './components/LangSwitch';
+import Layout from './components/Layout';
+import HomePage from './pages/HomePage';
+import ExplorePage from './pages/ExplorePage';
+import MatchPage from './pages/MatchPage';
+import PlaylistsPage from './pages/PlaylistsPage';
 import './App.css';
 
 export default function App() {
-  const { t } = useI18n();
   const { user, loading: authLoading, login, logout } = useAuth();
   const { progress, isRunning, error: syncError, startSync } = useSync();
-  const [showShare, setShowShare] = useState(false);
-  const [showCommunity, setShowCommunity] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { page, navigate } = useRouter();
   const {
     timeline, stats, yearDetail, loading: timelineLoading,
     fetchTimeline, fetchStats, fetchYearDetail, clearYearDetail
@@ -52,123 +46,39 @@ export default function App() {
     return <LoginButton onLogin={login} />;
   }
 
-  const hasData = timeline?.years?.length > 0;
-
-  return (
-    <div className="app">
-      <header className="app-header">
-        <h1>SoundShift</h1>
-        <div className="header-right desktop-only">
-          <LangSwitch />
-          <button className="community-btn" onClick={() => setShowCommunity(true)}>{t('header.community')}</button>
-          <span className="user-name">
-            {user.profileImage && (
-              <img src={user.profileImage} alt="" className="user-avatar" />
-            )}
-            {user.displayName}
-          </span>
-          <button className="logout-btn" onClick={logout}>{t('header.logout')}</button>
-        </div>
-        {/* Mobile */}
-        <div className="header-right mobile-only">
-          <button className="community-btn" onClick={() => setShowCommunity(true)}>{t('header.community')}</button>
-          <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>
-            {user.profileImage ? (
-              <img src={user.profileImage} alt="" className="user-avatar" />
-            ) : (
-              <span className="menu-hamburger">&#9776;</span>
-            )}
-          </button>
-        </div>
-        {menuOpen && (
-          <div className="mobile-menu" onClick={() => setMenuOpen(false)}>
-            <div className="mobile-menu-header">
-              {user.profileImage && (
-                <img src={user.profileImage} alt="" className="mobile-menu-avatar" />
-              )}
-              <span className="mobile-menu-name">{user.displayName}</span>
-            </div>
-            <div className="mobile-menu-items">
-              <button onClick={() => { setShowCommunity(true); setMenuOpen(false); }}>
-                {t('header.community')}
-              </button>
-              <div className="mobile-menu-lang">
-                <LangSwitch />
-              </div>
-              <button className="mobile-menu-logout" onClick={logout}>
-                {t('header.logout')}
-              </button>
-            </div>
-          </div>
-        )}
-      </header>
-
-      <main className="app-main">
-        <div className="sync-share-row">
-          <SyncButton
+  const renderPage = () => {
+    switch (page) {
+      case '/explore':
+        return <ExplorePage />;
+      case '/match':
+        return <MatchPage />;
+      case '/playlists':
+        return <PlaylistsPage stats={stats} />;
+      default:
+        return (
+          <HomePage
+            user={user}
+            navigate={navigate}
             progress={progress}
             isRunning={isRunning}
-            error={syncError}
-            onSync={startSync}
-            onReset={() => { fetchTimeline(); fetchStats(); }}
+            syncError={syncError}
+            startSync={startSync}
+            timeline={timeline}
+            stats={stats}
+            timelineLoading={timelineLoading}
+            fetchTimeline={fetchTimeline}
+            fetchStats={fetchStats}
+            fetchYearDetail={fetchYearDetail}
+            yearDetail={yearDetail}
+            clearYearDetail={clearYearDetail}
           />
-          {hasData && (
-            <button className="share-trigger-btn" onClick={() => setShowShare(true)}>
-              {t('share.button')}
-            </button>
-          )}
-        </div>
+        );
+    }
+  };
 
-        {timelineLoading && !hasData && (
-          <div className="dashboard-skeleton">
-            <div className="stats-grid">
-              {[0,1,2,3].map(i => (
-                <div key={i} className="stat-card">
-                  <div className="skeleton skeleton-stat-accent" />
-                  <span className="skeleton skeleton-stat-value" />
-                  <span className="skeleton skeleton-stat-label" />
-                </div>
-              ))}
-            </div>
-            <div className="chart-container">
-              <div className="skeleton skeleton-chart-header" />
-              <div className="skeleton skeleton-chart" />
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
-                {[0,1,2,3,4,5].map(i => (
-                  <span key={i} className="skeleton skeleton-legend" />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {hasData && (
-          <>
-            <StatsCards stats={stats} />
-            <TimelineChart data={timeline} onYearClick={fetchYearDetail} />
-            <MatchSection />
-          </>
-        )}
-
-        {!hasData && !isRunning && !timelineLoading && (
-          <div className="empty-state">
-            <p>{t('empty.noData')}</p>
-          </div>
-        )}
-      </main>
-
-      <YearDetail data={yearDetail} onClose={clearYearDetail} />
-      {showCommunity && (
-        <CommunityModal onClose={() => setShowCommunity(false)} />
-      )}
-      {showShare && (
-        <ShareCard
-          stats={stats}
-          timeline={timeline}
-          user={user}
-          onClose={() => setShowShare(false)}
-        />
-      )}
-    </div>
+  return (
+    <Layout page={page} navigate={navigate} user={user} onLogout={logout}>
+      {renderPage()}
+    </Layout>
   );
 }

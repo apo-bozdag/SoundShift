@@ -6,7 +6,7 @@ const router = Router();
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SPOTIFY_SECRET_KEY;
 const REDIRECT_URI = process.env.REDIRECT_URI;
-const SCOPES = 'user-library-read user-read-private';
+const SCOPES = 'user-library-read user-read-private playlist-read-private playlist-read-collaborative';
 
 // Geçici code_verifier store (memory, login başına)
 const pendingAuth = new Map();
