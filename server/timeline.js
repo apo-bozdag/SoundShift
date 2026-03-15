@@ -59,19 +59,40 @@ router.get('/timeline/:year', requireAuth, async (req, res) => {
     return res.status(404).json({ error: 'Year not found' });
   }
 
-  // O yılın şarkılarını çek
+  // O yılın şarkılarını çek (liked songs + playlist tracks)
   const yearStart = `${year}-01-01T00:00:00Z`;
   const yearEnd = `${year + 1}-01-01T00:00:00Z`;
-  const { data: songs } = await supabase
+
+  const { data: likedSongs } = await supabase
     .from('liked_songs')
-    .select('name, artist_ids, added_at')
+    .select('track_id, name, artist_ids, added_at')
     .eq('user_id', req.userId)
     .gte('added_at', yearStart)
     .lt('added_at', yearEnd)
     .order('added_at');
 
+  // Playlist track'lerini de çek (aynı yıl aralığında)
+  const playlistTracks = await fetchAll(() =>
+    supabase.from('playlist_tracks')
+      .select('track_id, name, artist_ids, added_at')
+      .like('playlist_id', `${req.userId}:%`)
+      .gte('added_at', yearStart)
+      .lt('added_at', yearEnd)
+      .order('added_at')
+  );
+
+  // Birleştir (duplicate'siz)
+  const seenTrackIds = new Set((likedSongs || []).map(s => s.track_id));
+  const allSongs = [...(likedSongs || [])];
+  for (const pt of playlistTracks) {
+    if (pt.track_id && !seenTrackIds.has(pt.track_id)) {
+      seenTrackIds.add(pt.track_id);
+      allSongs.push(pt);
+    }
+  }
+
   // İlgili artist'leri çek
-  const artistIds = [...new Set((songs || []).flatMap(s => s.artist_ids))];
+  const artistIds = [...new Set(allSongs.flatMap(s => s.artist_ids || []))];
   let artists = [];
   for (const chunk of chunkArray(artistIds, 300)) {
     const { data } = await supabase
@@ -82,14 +103,32 @@ router.get('/timeline/:year', requireAuth, async (req, res) => {
   }
   const artistMap = new Map(artists.map(a => [a.spotify_id, a]));
 
-  const enriched = (songs || []).map(s => ({
-    name: s.name,
-    artist: artistMap.get(s.artist_ids[0])?.name || 'Unknown',
-    genres: s.artist_ids.flatMap(id => artistMap.get(id)?.macro_genres || []),
-    addedAt: s.added_at,
-  }));
+  const enriched = allSongs.map(s => {
+    const mainArtist = artistMap.get((s.artist_ids || [])[0]);
+    const genres = (s.artist_ids || []).flatMap(id => artistMap.get(id)?.macro_genres || []).filter(g => g !== 'Unknown');
+    return {
+      trackId: s.track_id || null,
+      name: s.name,
+      artist: mainArtist?.name || null,
+      artistId: (s.artist_ids || [])[0] || null,
+      genres,
+      addedAt: s.added_at,
+    };
+  }).filter(s => s.artist);
 
-  res.json({ ...yearData, songs: enriched });
+  // topArtists'tan Unknown filtrele + artistId ekle (songs'tan bul)
+  const artistNameToId = new Map();
+  for (const s of allSongs) {
+    for (const aid of (s.artist_ids || [])) {
+      const a = artistMap.get(aid);
+      if (a?.name && !artistNameToId.has(a.name)) artistNameToId.set(a.name, aid);
+    }
+  }
+  const filteredTopArtists = (yearData.topArtists || [])
+    .filter(a => a.name && a.name !== 'Unknown')
+    .map(a => ({ ...a, artistId: artistNameToId.get(a.name) || null }));
+
+  res.json({ ...yearData, topArtists: filteredTopArtists, songs: enriched });
 });
 
 // Genel istatistikler

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useI18n } from '../i18n/index.jsx';
 
 function SpotifyIcon({ size = 16 }) {
@@ -40,6 +40,34 @@ export default function ExplorePage() {
   const [allArtists, setAllArtists] = useState(null);
   const [playlistDetail, setPlaylistDetail] = useState(null);
   const [playlistDetailLoading, setPlaylistDetailLoading] = useState(false);
+  const [plGenreFilter, setPlGenreFilter] = useState(null);
+  const [plSort, setPlSort] = useState('tracks'); // 'tracks' | 'compat' | 'name'
+
+  // All unique genres from community playlists
+  const plAllGenres = useMemo(() => {
+    if (!communityPlaylists) return [];
+    const set = new Set();
+    for (const pl of communityPlaylists) {
+      for (const g of (pl.topGenres || [])) set.add(g);
+    }
+    return [...set].sort();
+  }, [communityPlaylists]);
+
+  // Filtered & sorted playlists
+  const filteredPlaylists = useMemo(() => {
+    if (!communityPlaylists) return [];
+    let list = [...communityPlaylists];
+
+    if (plGenreFilter) {
+      list = list.filter(pl => pl.topGenres?.includes(plGenreFilter));
+    }
+
+    if (plSort === 'tracks') list.sort((a, b) => (b.trackCount || 0) - (a.trackCount || 0));
+    else if (plSort === 'compat') list.sort((a, b) => (b.compatibility ?? -1) - (a.compatibility ?? -1));
+    else if (plSort === 'name') list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    return list;
+  }, [communityPlaylists, plGenreFilter, plSort]);
 
   useEffect(() => {
     fetch('/api/public-stats')
@@ -143,8 +171,44 @@ export default function ExplorePage() {
             {communityPlaylists?.length > 0 && (
               <section className="explore-card explore-card-wide">
                 <h3 className="explore-card-title">{t('community.playlists')}</h3>
+
+                {/* Filters */}
+                <div className="pl-filters">
+                  <div className="pl-filter-chips">
+                    <button
+                      className={`match-chip ${!plGenreFilter ? 'active' : ''}`}
+                      onClick={() => setPlGenreFilter(null)}
+                    >
+                      {t('match.filterAll')}
+                    </button>
+                    {plAllGenres.map(g => (
+                      <button
+                        key={g}
+                        className={`match-chip ${plGenreFilter === g ? 'active' : ''}`}
+                        style={plGenreFilter === g ? { borderColor: GENRE_COLORS[g] || '#666', color: GENRE_COLORS[g] || '#fff' } : {}}
+                        onClick={() => setPlGenreFilter(plGenreFilter === g ? null : g)}
+                      >
+                        <span className="list-genre-dot" style={{ backgroundColor: GENRE_COLORS[g] || '#666' }} />
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="pl-filter-controls">
+                    <select
+                      className="pl-sort-select"
+                      value={plSort}
+                      onChange={(e) => setPlSort(e.target.value)}
+                    >
+                      <option value="tracks">{t('explore.sortTracks')}</option>
+                      <option value="compat">{t('explore.sortCompat')}</option>
+                      <option value="name">{t('explore.sortName')}</option>
+                    </select>
+                    <span className="pl-result-count">{filteredPlaylists.length} {t('match.results', { count: filteredPlaylists.length }).replace(/^\d+ /, '')}</span>
+                  </div>
+                </div>
+
                 <div className="explore-playlists-grid">
-                  {communityPlaylists.map((pl) => (
+                  {filteredPlaylists.map((pl) => (
                     <div key={pl.id} className="explore-playlist-card" onClick={() => handlePlaylistClick(pl)}>
                       <div className="explore-playlist-img">
                         {pl.imageUrl ? (

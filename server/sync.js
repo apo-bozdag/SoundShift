@@ -111,7 +111,7 @@ async function fetchAllLikedSongs(accessToken, lastAddedAt, onProgress, abortSig
 }
 
 // 2. Artist genre'larını çek (Spotify + Last.fm fallback)
-async function enrichArtistGenre(artistId, artistName, accessToken, cachedMap) {
+export async function enrichArtistGenre(artistId, artistName, accessToken, cachedMap) {
   const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const cached = cachedMap.get(artistId);
   if (cached && new Date(cached.fetched_at).getTime() > thirtyDaysAgo) {
@@ -231,6 +231,7 @@ function computeTimeline(songs, artistsMap) {
       const artist = artistsMap.get(artistId);
       if (!artist) continue;
       for (const genre of artist.macro_genres) {
+        if (genre === 'Unknown') continue;
         yearMap[year].genres[genre] = (yearMap[year].genres[genre] || 0) + 1;
       }
     }
@@ -243,12 +244,13 @@ function computeTimeline(songs, artistsMap) {
         (a, b) => new Date(a.added_at) - new Date(b.added_at)
       );
 
-      // Top artists by frequency
+      // Top artists by frequency (skip unknown)
       const artistCount = {};
       for (const s of data.songs) {
         for (const aid of s.artist_ids) {
-          const name = artistsMap.get(aid)?.name || 'Unknown';
-          artistCount[name] = (artistCount[name] || 0) + 1;
+          const artist = artistsMap.get(aid);
+          if (!artist?.name) continue;
+          artistCount[artist.name] = (artistCount[artist.name] || 0) + 1;
         }
       }
       const topArtists = Object.entries(artistCount)
@@ -578,9 +580,109 @@ export async function syncUser(userId, onProgress, abortSignal) {
     // Liked song track_id'lerini set'e al
     const likedTrackIds = new Set(allUserSongs.map(s => s.track_id));
 
+    // Playlist-only artist'leri bul ve genre enrichment yap
+    const playlistOnlyArtists = new Map();
+    for (const pt of playlistTracks) {
+      for (let i = 0; i < (pt.artist_ids || []).length; i++) {
+        const aid = pt.artist_ids[i];
+        if (!artistsMap.has(aid) && !playlistOnlyArtists.has(aid)) {
+          playlistOnlyArtists.set(aid, (pt.artists || [])[i] || 'Unknown');
+        }
+      }
+    }
+
+    if (playlistOnlyArtists.size > 0) {
+      broadcast({
+        step: 'artists',
+        message: `${playlistOnlyArtists.size} playlist sanatçısının genre'ları çekiliyor...`,
+        total: playlistOnlyArtists.size,
+        current: 0
+      });
+
+      // Cached olanları çek
+      const plArtistIds = [...playlistOnlyArtists.keys()];
+      let plCached = [];
+      for (const chunk of chunkArray(plArtistIds, 300)) {
+        const { data } = await supabase.from('artists').select('spotify_id, fetched_at').in('spotify_id', chunk);
+        if (data) plCached.push(...data);
+      }
+      const plCachedMap = new Map(plCached.map(a => [a.spotify_id, a]));
+
+      const plToken = await getValidToken(userId);
+      let plProcessed = 0;
+      const plEntries = [...playlistOnlyArtists.entries()];
+
+      for (let i = 0; i < plEntries.length; i += BATCH_SIZE) {
+        if (abortSignal?.aborted) break;
+        const batch = plEntries.slice(i, i + BATCH_SIZE);
+        await Promise.all(
+          batch.map(async ([artistId, artistName]) => {
+            await enrichArtistGenre(artistId, artistName, plToken, plCachedMap);
+            plProcessed++;
+            if (plProcessed % 20 === 0) {
+              broadcast({ step: 'artists', current: plProcessed, total: playlistOnlyArtists.size });
+            }
+          })
+        );
+      }
+
+      // Enrich edilen artist'leri artistsMap'e ekle
+      for (const chunk of chunkArray(plArtistIds, 300)) {
+        const { data } = await supabase.from('artists').select('*').in('spotify_id', chunk);
+        if (data) data.forEach(a => artistsMap.set(a.spotify_id, a));
+      }
+
+      // Playlist genre_distribution ve track genre'larını güncelle (artık tüm artist'ler enrich edildi)
+      const userPlaylists = await fetchAll(() =>
+        supabase.from('playlists').select('id').like('id', `${userId}:%`).order('id')
+      );
+      for (const pl of userPlaylists) {
+        const plTracks = await fetchAll(() =>
+          supabase.from('playlist_tracks').select('track_id, artist_ids').eq('playlist_id', pl.id).order('added_at')
+        );
+        const gc = {};
+        let gt = 0;
+        for (const t of plTracks) {
+          let trackGenre = null;
+          for (const aid of (t.artist_ids || [])) {
+            const ar = artistsMap.get(aid);
+            if (!ar) continue;
+            for (const g of (ar.macro_genres || [])) {
+              if (g === 'Unknown') continue;
+              gc[g] = (gc[g] || 0) + 1;
+              gt++;
+              if (!trackGenre) trackGenre = g;
+            }
+          }
+          // Track genre güncelle
+          if (trackGenre) {
+            await supabase.from('playlist_tracks')
+              .update({ genre: trackGenre })
+              .eq('playlist_id', pl.id)
+              .eq('track_id', t.track_id);
+          }
+        }
+        const gd = {};
+        if (gt > 0) {
+          for (const [g, c] of Object.entries(gc)) {
+            gd[g] = Math.round((c / gt) * 100) / 100;
+          }
+        }
+        await supabase.from('playlists').update({ genre_distribution: gd }).eq('id', pl.id);
+      }
+    }
+
     // Playlist'ten gelen ama liked'da olmayan şarkıları ekle
+    // Sadece en az bir artist'i genre bilgisi olan track'leri dahil et (Unknown olmasın)
     const extraSongs = playlistTracks
-      .filter(pt => pt.track_id && pt.added_at && !likedTrackIds.has(pt.track_id))
+      .filter(pt => {
+        if (!pt.track_id || !pt.added_at || likedTrackIds.has(pt.track_id)) return false;
+        const ids = pt.artist_ids || [];
+        return ids.some(id => {
+          const a = artistsMap.get(id);
+          return a && a.macro_genres?.length > 0 && a.macro_genres[0] !== 'Unknown';
+        });
+      })
       .map(pt => ({
         track_id: pt.track_id,
         name: pt.name,
@@ -589,13 +691,6 @@ export async function syncUser(userId, onProgress, abortSignal) {
         added_at: pt.added_at,
         user_id: userId,
       }));
-
-    // Playlist extra'lardan gelen artist'leri de artistsMap'e ekle
-    const extraArtistIds = [...new Set(extraSongs.flatMap(s => s.artist_ids))].filter(id => !artistsMap.has(id));
-    for (const chunk of chunkArray(extraArtistIds, 300)) {
-      const { data } = await supabase.from('artists').select('*').in('spotify_id', chunk);
-      if (data) data.forEach(a => artistsMap.set(a.spotify_id, a));
-    }
 
     // Birleşik timeline: liked songs + playlist-only songs
     const combinedSongs = [...allUserSongs, ...extraSongs];

@@ -8,6 +8,7 @@ import authRouter, { requireAuth } from './auth.js';
 import timelineRouter from './timeline.js';
 import playlistRouter from './playlists.js';
 import { syncUser, isSyncRunning, subscribeProgress, unsubscribeProgress } from './sync.js';
+import uploadRouter from './upload.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,6 +25,7 @@ app.use(express.json());
 app.use('/auth', authRouter);
 app.use('/api', timelineRouter);
 app.use('/api', requireAuth, playlistRouter);
+app.use('/api', uploadRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useSync } from './hooks/useSync';
 import { useTimeline } from './hooks/useTimeline';
@@ -9,12 +9,14 @@ import HomePage from './pages/HomePage';
 import ExplorePage from './pages/ExplorePage';
 import MatchPage from './pages/MatchPage';
 import PlaylistsPage from './pages/PlaylistsPage';
+import UploadPage from './pages/UploadPage';
 import './App.css';
 
 export default function App() {
-  const { user, loading: authLoading, login, logout } = useAuth();
+  const { user, loading: authLoading, login, logout, refetch } = useAuth();
   const { progress, isRunning, error: syncError, startSync } = useSync();
   const { page, navigate } = useRouter();
+  const [showUpload, setShowUpload] = useState(false);
   const {
     timeline, stats, yearDetail, loading: timelineLoading,
     fetchTimeline, fetchStats, fetchYearDetail, clearYearDetail
@@ -43,7 +45,18 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginButton onLogin={login} />;
+    if (showUpload) {
+      return (
+        <UploadPage
+          onComplete={() => {
+            setShowUpload(false);
+            refetch();
+          }}
+          onBack={() => setShowUpload(false)}
+        />
+      );
+    }
+    return <LoginButton onLogin={login} onUpload={() => setShowUpload(true)} />;
   }
 
   const renderPage = () => {
