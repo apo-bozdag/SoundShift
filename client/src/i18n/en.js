@@ -59,12 +59,23 @@ export default {
   'landing.totalUsers': 'Users',
   'landing.totalSongs': 'Songs Analyzed',
   'landing.totalArtists': 'Artists',
+  'landing.yearsOfMusic': 'Years of Music',
   'landing.recentUsers': 'Recently Joined',
   'landing.topArtists': 'Most Popular Artists',
   'landing.topGenres': 'Genre Breakdown',
   'landing.songs': 'songs',
+  'landing.likedBy': 'Liked by {count} users',
+  'landing.artistSongs': 'Songs',
   'landing.devNotice': 'Spotify is in development mode, new users need to be added manually.',
   'landing.wantAccess': 'DM on Twitter for access:',
+
+  // Match
+  'match.title': 'Music Match',
+  'match.subtitle': 'Users with similar taste',
+  'match.common': 'Common:',
+  'match.noUsers': 'No users to compare yet',
+  'match.you': 'You',
+  'match.genreBreakdown': 'Genre Comparison',
 
   // Empty
   'empty.noData': 'No data yet. Start a sync to fetch your liked songs.',

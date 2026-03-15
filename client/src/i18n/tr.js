@@ -59,12 +59,23 @@ export default {
   'landing.totalUsers': 'Kullanıcı',
   'landing.totalSongs': 'Analiz Edilen Şarkı',
   'landing.totalArtists': 'Sanatçı',
+  'landing.yearsOfMusic': 'Yıllık Müzik',
   'landing.recentUsers': 'Son Katılanlar',
   'landing.topArtists': 'En Popüler Sanatçılar',
   'landing.topGenres': 'Genre Dağılımı',
   'landing.songs': 'şarkı',
+  'landing.likedBy': '{count} kullanıcı beğendi',
+  'landing.artistSongs': 'Şarkılar',
   'landing.devNotice': 'Spotify development modunda olduğu için yeni kullanıcılar eklenmelidir.',
   'landing.wantAccess': 'Erişim almak için Twitter\'dan yazın:',
+
+  // Match
+  'match.title': 'Music Match',
+  'match.subtitle': 'Genre zevkine en yakın kullanıcılar',
+  'match.common': 'Ortak:',
+  'match.noUsers': 'Henüz karşılaştırılacak kullanıcı yok',
+  'match.you': 'Sen',
+  'match.genreBreakdown': 'Genre Karşılaştırması',
 
   // Empty
   'empty.noData': 'Henüz veri yok. Sync başlatarak liked songs verini çekebilirsin.',

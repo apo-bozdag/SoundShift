@@ -9,6 +9,7 @@ import StatsCards from './components/StatsCards';
 import TimelineChart from './components/TimelineChart';
 import YearDetail from './components/YearDetail';
 import ShareCard from './components/ShareCard';
+import MatchSection from './components/MatchSection';
 import LangSwitch from './components/LangSwitch';
 import './App.css';
 
@@ -109,6 +110,7 @@ export default function App() {
           <>
             <StatsCards stats={stats} />
             <TimelineChart data={timeline} onYearClick={fetchYearDetail} />
+            <MatchSection />
           </>
         )}
 

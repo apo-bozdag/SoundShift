@@ -20,6 +20,7 @@ export default function LoginButton({ onLogin }) {
   const { t } = useI18n();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [artistModal, setArtistModal] = useState(null); // { name, loading } or { name, data }
 
   useEffect(() => {
     fetch('/api/public-stats')
@@ -28,6 +29,14 @@ export default function LoginButton({ onLogin }) {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const handleArtistClick = (artist) => {
+    setArtistModal({ name: artist.name, genre: artist.genre, loading: true });
+    fetch(`/api/public-artist-songs/${artist.id}`)
+      .then(r => r.json())
+      .then(data => setArtistModal({ name: artist.name, genre: artist.genre, loading: false, data }))
+      .catch(() => setArtistModal(null));
+  };
 
   return (
     <div className="landing">
@@ -71,7 +80,7 @@ export default function LoginButton({ onLogin }) {
       {loading && (
         <>
           <section className="landing-counters">
-            {[0,1,2].map(i => (
+            {[0,1,2,3].map(i => (
               <div key={i} className="landing-counter">
                 <span className="skeleton skeleton-counter" />
                 <span className="skeleton skeleton-label" />
@@ -116,6 +125,12 @@ export default function LoginButton({ onLogin }) {
               <span className="counter-val">{stats.userCount}</span>
               <span className="counter-lbl">{t('landing.totalUsers')}</span>
             </div>
+            {stats.yearsOfMusic && (
+              <div className="landing-counter">
+                <span className="counter-val">{stats.yearsOfMusic}</span>
+                <span className="counter-lbl">{t('landing.yearsOfMusic')}</span>
+              </div>
+            )}
           </section>
 
           <div className="landing-grid">
@@ -142,7 +157,7 @@ export default function LoginButton({ onLogin }) {
                 <h3 className="landing-card-title">{t('landing.topArtists')}</h3>
                 <div className="landing-list">
                   {stats.topArtists.map((a, i) => (
-                    <div key={i} className="landing-list-item">
+                    <div key={i} className="landing-list-item clickable" onClick={() => handleArtistClick(a)}>
                       <span className="list-rank">#{i + 1}</span>
                       <div className="list-info">
                         <span className="list-name">{a.name}</span>
@@ -154,7 +169,7 @@ export default function LoginButton({ onLogin }) {
                           {a.genre}
                         </span>
                       </div>
-                      <span className="list-count">{a.count} {t('landing.songs')}</span>
+                      <span className="list-count">{a.count} {t('landing.songs')} &rsaquo;</span>
                     </div>
                   ))}
                 </div>
@@ -188,6 +203,55 @@ export default function LoginButton({ onLogin }) {
             )}
           </div>
         </>
+      )}
+
+      {/* Artist Songs Modal */}
+      {artistModal && (
+        <div className="modal-overlay" onClick={() => setArtistModal(null)}>
+          <div className="modal-content artist-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setArtistModal(null)}>&times;</button>
+
+            <div className="modal-header">
+              <h2>{artistModal.name}</h2>
+            </div>
+
+            {artistModal.loading ? (
+              <div className="artist-modal-skeleton">
+                <div className="skeleton skeleton-artist-modal-sub" />
+                {[0,1,2,3,4,5,6,7].map(i => (
+                  <div key={i} className="artist-modal-song-skeleton">
+                    <span className="skeleton skeleton-song-idx" />
+                    <div style={{ flex: 1 }}>
+                      <span className="skeleton skeleton-song-name-lg" />
+                      <span className="skeleton skeleton-song-artists" />
+                    </div>
+                    <span className="skeleton skeleton-song-likes" />
+                  </div>
+                ))}
+              </div>
+            ) : artistModal.data ? (
+              <>
+                <p className="artist-modal-sub">
+                  {t('landing.artistSongs')} &middot; {t('landing.likedBy', { count: artistModal.data.totalLikes })}
+                </p>
+                <div className="artist-songs-list">
+                  {artistModal.data.songs.map((s, i) => (
+                    <div key={i} className="artist-song-row">
+                      <span className="song-index">{i + 1}</span>
+                      <div className="song-info">
+                        <span className="song-name">{s.name}</span>
+                        <span className="song-artist">{s.artists.join(', ')}</span>
+                      </div>
+                      {s.likeCount > 1 && (
+                        <span className="song-like-count">{s.likeCount}x</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
       )}
 
       <footer className="landing-footer">

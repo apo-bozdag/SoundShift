@@ -146,6 +146,100 @@ router.get('/stats', requireAuth, async (req, res) => {
   });
 });
 
+// Kullanıcı eşleştirme (genre benzerliği)
+router.get('/matches', requireAuth, async (req, res) => {
+  try {
+    const { data: me } = await supabase
+      .from('users')
+      .select('spotify_id, display_name, profile_image, timeline')
+      .eq('spotify_id', req.userId)
+      .single();
+
+    if (!me?.timeline?.years?.length) {
+      return res.json({ matches: [] });
+    }
+
+    // Benim genre dağılımım
+    const myGenres = {};
+    for (const y of me.timeline.years) {
+      for (const [g, c] of Object.entries(y.genres)) {
+        if (g !== 'Unknown') myGenres[g] = (myGenres[g] || 0) + c;
+      }
+    }
+    const myTotal = Object.values(myGenres).reduce((a, b) => a + b, 0) || 1;
+
+    // Diğer kullanıcılar
+    const { data: others } = await supabase
+      .from('users')
+      .select('spotify_id, display_name, profile_image, timeline')
+      .neq('spotify_id', req.userId);
+
+    const matches = (others || [])
+      .filter(u => u.timeline?.years?.length > 0)
+      .map(u => {
+        // Onun genre dağılımı
+        const theirGenres = {};
+        for (const y of u.timeline.years) {
+          for (const [g, c] of Object.entries(y.genres)) {
+            if (g !== 'Unknown') theirGenres[g] = (theirGenres[g] || 0) + c;
+          }
+        }
+        const theirTotal = Object.values(theirGenres).reduce((a, b) => a + b, 0) || 1;
+
+        // Cosine similarity
+        const allGenres = new Set([...Object.keys(myGenres), ...Object.keys(theirGenres)]);
+        let dotProduct = 0, magA = 0, magB = 0;
+        for (const g of allGenres) {
+          const a = (myGenres[g] || 0) / myTotal;
+          const b = (theirGenres[g] || 0) / theirTotal;
+          dotProduct += a * b;
+          magA += a * a;
+          magB += b * b;
+        }
+        const similarity = (magA && magB)
+          ? Math.round((dotProduct / (Math.sqrt(magA) * Math.sqrt(magB))) * 100)
+          : 0;
+
+        // Ortak en güçlü genre
+        let topCommon = null;
+        let topCommonScore = 0;
+        for (const g of allGenres) {
+          const score = Math.min(myGenres[g] || 0, theirGenres[g] || 0);
+          if (score > topCommonScore) {
+            topCommonScore = score;
+            topCommon = g;
+          }
+        }
+
+        // Genre karşılaştırma detayları
+        const genreComparison = [];
+        for (const g of allGenres) {
+          const myPct = Math.round(((myGenres[g] || 0) / myTotal) * 100);
+          const theirPct = Math.round(((theirGenres[g] || 0) / theirTotal) * 100);
+          if (myPct > 0 || theirPct > 0) {
+            genreComparison.push({ genre: g, myPct, theirPct });
+          }
+        }
+        genreComparison.sort((a, b) => (b.myPct + b.theirPct) - (a.myPct + a.theirPct));
+
+        return {
+          userId: u.spotify_id,
+          displayName: u.display_name,
+          profileImage: u.profile_image,
+          matchPercent: similarity,
+          topCommonGenre: topCommon,
+          genreComparison: genreComparison.slice(0, 8),
+        };
+      })
+      .sort((a, b) => b.matchPercent - a.matchPercent);
+
+    res.json({ matches });
+  } catch (err) {
+    console.error('Matches error:', err);
+    res.status(500).json({ error: 'Failed to calculate matches' });
+  }
+});
+
 // Public: anasayfa istatistikleri (auth gerektirmez)
 router.get('/public-stats', async (req, res) => {
   try {
@@ -194,6 +288,7 @@ router.get('/public-stats', async (req, res) => {
         .select('spotify_id, name, macro_genres')
         .in('spotify_id', topArtistIds);
       topArtists = (data || []).map(a => ({
+        id: a.spotify_id,
         name: a.name,
         genre: a.macro_genres?.[0] || 'Unknown',
         count: artistFreq[a.spotify_id],
@@ -216,10 +311,33 @@ router.get('/public-stats', async (req, res) => {
       .slice(0, 6)
       .map(([name, count]) => ({ name, count }));
 
+    // Yıl aralığı: en eski ve en yeni liked song
+    const { data: oldest } = await supabase
+      .from('liked_songs')
+      .select('added_at')
+      .order('added_at', { ascending: true })
+      .limit(1)
+      .single();
+
+    const { data: newest } = await supabase
+      .from('liked_songs')
+      .select('added_at')
+      .order('added_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    let yearsOfMusic = null;
+    if (oldest?.added_at && newest?.added_at) {
+      const from = new Date(oldest.added_at).getFullYear();
+      const to = new Date(newest.added_at).getFullYear();
+      yearsOfMusic = to - from + 1;
+    }
+
     res.json({
       userCount: userCount || 0,
       songCount: songCount || 0,
       artistCount: artistCount || 0,
+      yearsOfMusic,
       recentUsers: (recentUsers || []).map(u => ({
         displayName: u.display_name,
         profileImage: u.profile_image,
@@ -229,7 +347,63 @@ router.get('/public-stats', async (req, res) => {
     });
   } catch (err) {
     console.error('Public stats error:', err);
-    res.json({ userCount: 0, songCount: 0, artistCount: 0, recentUsers: [], topArtists: [], topGenres: [] });
+    res.json({ userCount: 0, songCount: 0, artistCount: 0, yearsOfMusic: null, recentUsers: [], topArtists: [], topGenres: [] });
+  }
+});
+
+// Public: sanatçının şarkıları (auth gerektirmez)
+router.get('/public-artist-songs/:artistId', async (req, res) => {
+  try {
+    const { artistId } = req.params;
+
+    // Artist bilgisi
+    const { data: artist } = await supabase
+      .from('artists')
+      .select('spotify_id, name, macro_genres')
+      .eq('spotify_id', artistId)
+      .single();
+
+    if (!artist) {
+      return res.status(404).json({ error: 'Artist not found' });
+    }
+
+    // Bu sanatçının geçtiği şarkıları bul (jsonb array contains)
+    const allSongs = await fetchAll(() =>
+      supabase
+        .from('liked_songs')
+        .select('name, artist_ids, artist_names, added_at')
+        .filter('artist_ids', 'cs', JSON.stringify([artistId]))
+        .order('added_at', { ascending: false })
+    );
+
+    // Unique şarkılar (farklı kullanıcılardan aynı şarkı gelebilir)
+    const seen = new Set();
+    const uniqueSongs = [];
+    for (const s of allSongs) {
+      const key = `${s.name}-${(s.artist_names || [])[0]}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        const likeCount = allSongs.filter(x => `${x.name}-${(x.artist_names || [])[0]}` === key).length;
+        uniqueSongs.push({
+          name: s.name,
+          artists: s.artist_names || [],
+          addedAt: s.added_at,
+          likeCount,
+        });
+      }
+    }
+
+    res.json({
+      artist: {
+        name: artist.name,
+        genres: artist.macro_genres || [],
+      },
+      songs: uniqueSongs.slice(0, 50),
+      totalLikes: allSongs.length,
+    });
+  } catch (err) {
+    console.error('Public artist songs error:', err);
+    res.status(500).json({ error: 'Failed to fetch artist songs' });
   }
 });
 
