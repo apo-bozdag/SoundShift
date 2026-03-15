@@ -66,6 +66,8 @@ export default {
   'landing.songs': 'şarkı',
   'landing.likedBy': '{count} kullanıcı beğendi',
   'landing.artistSongs': 'Şarkılar',
+  'landing.showAll': 'Tümünü Gör',
+  'landing.allArtists': 'Tüm Sanatçılar',
   'landing.devNotice': 'Spotify development modunda olduğu için yeni kullanıcılar eklenmelidir.',
   'landing.wantAccess': 'Erişim almak için Twitter\'dan yazın:',
 
@@ -74,6 +76,7 @@ export default {
   'match.subtitle': 'Genre zevkine en yakın kullanıcılar',
   'match.common': 'Ortak:',
   'match.noUsers': 'Henüz karşılaştırılacak kullanıcı yok',
+  'header.community': 'Keşfet',
   'match.you': 'Sen',
   'match.genreBreakdown': 'Genre Karşılaştırması',
 

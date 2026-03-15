@@ -10,6 +10,7 @@ import TimelineChart from './components/TimelineChart';
 import YearDetail from './components/YearDetail';
 import ShareCard from './components/ShareCard';
 import MatchSection from './components/MatchSection';
+import CommunityModal from './components/CommunityModal';
 import LangSwitch from './components/LangSwitch';
 import './App.css';
 
@@ -18,6 +19,8 @@ export default function App() {
   const { user, loading: authLoading, login, logout } = useAuth();
   const { progress, isRunning, error: syncError, startSync } = useSync();
   const [showShare, setShowShare] = useState(false);
+  const [showCommunity, setShowCommunity] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const {
     timeline, stats, yearDetail, loading: timelineLoading,
     fetchTimeline, fetchStats, fetchYearDetail, clearYearDetail
@@ -55,8 +58,9 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <h1>SoundShift</h1>
-        <div className="header-right">
+        <div className="header-right desktop-only">
           <LangSwitch />
+          <button className="community-btn" onClick={() => setShowCommunity(true)}>{t('header.community')}</button>
           <span className="user-name">
             {user.profileImage && (
               <img src={user.profileImage} alt="" className="user-avatar" />
@@ -65,6 +69,38 @@ export default function App() {
           </span>
           <button className="logout-btn" onClick={logout}>{t('header.logout')}</button>
         </div>
+        {/* Mobile */}
+        <div className="header-right mobile-only">
+          <button className="community-btn" onClick={() => setShowCommunity(true)}>{t('header.community')}</button>
+          <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>
+            {user.profileImage ? (
+              <img src={user.profileImage} alt="" className="user-avatar" />
+            ) : (
+              <span className="menu-hamburger">&#9776;</span>
+            )}
+          </button>
+        </div>
+        {menuOpen && (
+          <div className="mobile-menu" onClick={() => setMenuOpen(false)}>
+            <div className="mobile-menu-header">
+              {user.profileImage && (
+                <img src={user.profileImage} alt="" className="mobile-menu-avatar" />
+              )}
+              <span className="mobile-menu-name">{user.displayName}</span>
+            </div>
+            <div className="mobile-menu-items">
+              <button onClick={() => { setShowCommunity(true); setMenuOpen(false); }}>
+                {t('header.community')}
+              </button>
+              <div className="mobile-menu-lang">
+                <LangSwitch />
+              </div>
+              <button className="mobile-menu-logout" onClick={logout}>
+                {t('header.logout')}
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="app-main">
@@ -122,6 +158,9 @@ export default function App() {
       </main>
 
       <YearDetail data={yearDetail} onClose={clearYearDetail} />
+      {showCommunity && (
+        <CommunityModal onClose={() => setShowCommunity(false)} />
+      )}
       {showShare && (
         <ShareCard
           stats={stats}

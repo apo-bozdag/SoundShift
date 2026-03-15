@@ -66,6 +66,8 @@ export default {
   'landing.songs': 'songs',
   'landing.likedBy': 'Liked by {count} users',
   'landing.artistSongs': 'Songs',
+  'landing.showAll': 'Show All',
+  'landing.allArtists': 'All Artists',
   'landing.devNotice': 'Spotify is in development mode, new users need to be added manually.',
   'landing.wantAccess': 'DM on Twitter for access:',
 
@@ -74,6 +76,7 @@ export default {
   'match.subtitle': 'Users with similar taste',
   'match.common': 'Common:',
   'match.noUsers': 'No users to compare yet',
+  'header.community': 'Community',
   'match.you': 'You',
   'match.genreBreakdown': 'Genre Comparison',
 

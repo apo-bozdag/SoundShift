@@ -20,7 +20,17 @@ export default function LoginButton({ onLogin }) {
   const { t } = useI18n();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [artistModal, setArtistModal] = useState(null); // { name, loading } or { name, data }
+  const [artistModal, setArtistModal] = useState(null);
+  const [likedByModal, setLikedByModal] = useState(null);
+  const [allArtists, setAllArtists] = useState(null); // { loading, data }
+
+  const handleShowAllArtists = () => {
+    setAllArtists({ loading: true });
+    fetch('/api/public-top-artists?limit=50')
+      .then(r => r.json())
+      .then(data => setAllArtists({ loading: false, artists: data.artists, total: data.total }))
+      .catch(() => setAllArtists(null));
+  };
 
   useEffect(() => {
     fetch('/api/public-stats')
@@ -173,6 +183,9 @@ export default function LoginButton({ onLogin }) {
                     </div>
                   ))}
                 </div>
+                <button className="show-all-btn" onClick={handleShowAllArtists}>
+                  {t('landing.showAll')}
+                </button>
               </section>
             )}
 
@@ -242,14 +255,108 @@ export default function LoginButton({ onLogin }) {
                         <span className="song-name">{s.name}</span>
                         <span className="song-artist">{s.artists.join(', ')}</span>
                       </div>
-                      {s.likeCount > 1 && (
-                        <span className="song-like-count">{s.likeCount}x</span>
+                      {s.likedBy?.length > 0 && (
+                        <div className="song-liked-avatars">
+                          {s.likedBy.slice(0, 3).map((u, j) => (
+                            u.profileImage ? (
+                              <img key={j} src={u.profileImage} alt={u.displayName} title={u.displayName} className="song-liked-avatar" />
+                            ) : (
+                              <span key={j} className="song-liked-avatar placeholder" title={u.displayName}>
+                                {u.displayName?.[0] || '?'}
+                              </span>
+                            )
+                          ))}
+                          {s.likedBy.length > 3 && (
+                            <span
+                              className="song-liked-avatar more"
+                              title={s.likedBy.slice(3).map(u => u.displayName).join(', ')}
+                              onClick={(e) => { e.stopPropagation(); setLikedByModal(s.likedBy); }}
+                            >
+                              +{s.likedBy.length - 3}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                   ))}
                 </div>
               </>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* All Artists Modal */}
+      {allArtists && (
+        <div className="modal-overlay" onClick={() => setAllArtists(null)}>
+          <div className="modal-content all-artists-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setAllArtists(null)}>&times;</button>
+            <div className="modal-header">
+              <h2>{t('landing.allArtists')}</h2>
+              {allArtists.total && (
+                <span className="year-badge">{allArtists.total} {t('landing.totalArtists').toLowerCase()}</span>
+              )}
+            </div>
+            {allArtists.loading ? (
+              <div className="artist-modal-skeleton">
+                {[0,1,2,3,4,5,6,7,8,9].map(i => (
+                  <div key={i} className="artist-modal-song-skeleton">
+                    <span className="skeleton skeleton-song-idx" />
+                    <div style={{ flex: 1 }}>
+                      <span className="skeleton skeleton-song-name-lg" />
+                      <span className="skeleton skeleton-song-artists" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="all-artists-list">
+                {allArtists.artists?.map((a, i) => (
+                  <div
+                    key={a.id}
+                    className="landing-list-item clickable"
+                    onClick={() => { setAllArtists(null); handleArtistClick(a); }}
+                  >
+                    <span className="list-rank">#{i + 1}</span>
+                    <div className="list-info">
+                      <span className="list-name">{a.name}</span>
+                      <span className="list-meta">
+                        <span
+                          className="list-genre-dot"
+                          style={{ backgroundColor: GENRE_COLORS[a.genre] || '#666' }}
+                        />
+                        {a.genre}
+                      </span>
+                    </div>
+                    <span className="list-count">{a.count} {t('landing.songs')} &rsaquo;</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Liked By Modal */}
+      {likedByModal && (
+        <div className="modal-overlay" onClick={() => setLikedByModal(null)}>
+          <div className="modal-content liked-by-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setLikedByModal(null)}>&times;</button>
+            <div className="modal-header">
+              <h2>{t('landing.likedBy', { count: likedByModal.length })}</h2>
+            </div>
+            <div className="liked-by-list">
+              {likedByModal.map((u, i) => (
+                <div key={i} className="liked-by-row">
+                  {u.profileImage ? (
+                    <img src={u.profileImage} alt="" className="liked-by-avatar" />
+                  ) : (
+                    <span className="liked-by-avatar placeholder">{u.displayName?.[0] || '?'}</span>
+                  )}
+                  <span className="liked-by-name">{u.displayName}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

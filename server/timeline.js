@@ -351,6 +351,55 @@ router.get('/public-stats', async (req, res) => {
   }
 });
 
+// Public: tüm top sanatçılar (auth gerektirmez)
+router.get('/public-top-artists', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+
+    const allSongs = await fetchAll(() =>
+      supabase.from('liked_songs').select('artist_ids').order('id')
+    );
+
+    const artistFreq = {};
+    for (const song of allSongs) {
+      for (const id of song.artist_ids) {
+        artistFreq[id] = (artistFreq[id] || 0) + 1;
+      }
+    }
+
+    const topArtistIds = Object.entries(artistFreq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([id]) => id);
+
+    let topArtists = [];
+    if (topArtistIds.length > 0) {
+      const chunks = [];
+      for (let i = 0; i < topArtistIds.length; i += 300) {
+        chunks.push(topArtistIds.slice(i, i + 300));
+      }
+      for (const chunk of chunks) {
+        const { data } = await supabase
+          .from('artists')
+          .select('spotify_id, name, macro_genres')
+          .in('spotify_id', chunk);
+        if (data) topArtists.push(...data);
+      }
+      topArtists = topArtists.map(a => ({
+        id: a.spotify_id,
+        name: a.name,
+        genre: a.macro_genres?.[0] || 'Unknown',
+        count: artistFreq[a.spotify_id],
+      })).sort((a, b) => b.count - a.count);
+    }
+
+    res.json({ artists: topArtists, total: Object.keys(artistFreq).length });
+  } catch (err) {
+    console.error('Public top artists error:', err);
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
 // Public: sanatçının şarkıları (auth gerektirmez)
 router.get('/public-artist-songs/:artistId', async (req, res) => {
   try {
@@ -371,34 +420,55 @@ router.get('/public-artist-songs/:artistId', async (req, res) => {
     const allSongs = await fetchAll(() =>
       supabase
         .from('liked_songs')
-        .select('name, artist_ids, artist_names, added_at')
+        .select('name, artist_ids, artist_names, added_at, user_id')
         .filter('artist_ids', 'cs', JSON.stringify([artistId]))
         .order('added_at', { ascending: false })
     );
 
-    // Unique şarkılar (farklı kullanıcılardan aynı şarkı gelebilir)
-    const seen = new Set();
-    const uniqueSongs = [];
-    for (const s of allSongs) {
-      const key = `${s.name}-${(s.artist_names || [])[0]}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        const likeCount = allSongs.filter(x => `${x.name}-${(x.artist_names || [])[0]}` === key).length;
-        uniqueSongs.push({
-          name: s.name,
-          artists: s.artist_names || [],
-          addedAt: s.added_at,
-          likeCount,
+    // Beğenen kullanıcıların bilgilerini çek
+    const userIds = [...new Set(allSongs.map(s => s.user_id))];
+    let usersMap = new Map();
+    if (userIds.length > 0) {
+      const { data: users } = await supabase
+        .from('users')
+        .select('spotify_id, display_name, profile_image')
+        .in('spotify_id', userIds);
+      for (const u of (users || [])) {
+        usersMap.set(u.spotify_id, {
+          displayName: u.display_name,
+          profileImage: u.profile_image,
         });
       }
     }
+
+    // Unique şarkılar (farklı kullanıcılardan aynı şarkı gelebilir)
+    const seen = new Map();
+    for (const s of allSongs) {
+      const key = `${s.name}-${(s.artist_names || [])[0]}`;
+      if (!seen.has(key)) {
+        seen.set(key, {
+          name: s.name,
+          artists: s.artist_names || [],
+          addedAt: s.added_at,
+          likedBy: [],
+        });
+      }
+      const user = usersMap.get(s.user_id);
+      if (user && !seen.get(key).likedBy.find(u => u.displayName === user.displayName)) {
+        seen.get(key).likedBy.push(user);
+      }
+    }
+
+    const uniqueSongs = [...seen.values()]
+      .sort((a, b) => b.likedBy.length - a.likedBy.length)
+      .slice(0, 50);
 
     res.json({
       artist: {
         name: artist.name,
         genres: artist.macro_genres || [],
       },
-      songs: uniqueSongs.slice(0, 50),
+      songs: uniqueSongs,
       totalLikes: allSongs.length,
     });
   } catch (err) {
